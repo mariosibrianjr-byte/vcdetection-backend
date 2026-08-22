@@ -31,6 +31,10 @@ const char* DISPOSITIVO_ID = "SALON_01";          // Cambiá por el salón corre
 const char* WIFI_SSID      = "737MUVIECABLE";
 const char* WIFI_PASSWORD  = "5F7UHI650JCI89P";
 const char* SERVER_URL = "https://vcdetection-backend.onrender.com/api/sensor/lectura";
+// API key que autoriza este dispositivo ante el backend.
+// Debe coincidir con la variable DEVICE_API_KEY del .env del servidor.
+// IMPORTANTE: no subas este archivo con credenciales reales a un repo público.
+const char* DEVICE_API_KEY = "CAMBIA_ESTA_API_KEY";
 
 // ─── Pines ────────────────────────────────────────────────────────────────────
 const int MQ135_PIN = 35;
@@ -400,6 +404,7 @@ bool enviarDatos(Lectura &lec) {
   HTTPClient http;
   http.begin(SERVER_URL);
   http.addHeader("Content-Type", "application/json");
+  http.addHeader("x-device-key", DEVICE_API_KEY);
   http.setTimeout(3000);
 
   // [CORRECCIÓN 3] Aumentado a 450 para no desbordar con todos los campos (incluye CO2)
@@ -427,6 +432,11 @@ bool enviarDatos(Lectura &lec) {
   if (respuesta == 200 || respuesta == 201) {
     Serial.println("[HTTP] ✓ Enviado");
     return true;
+  }
+
+  if (respuesta == 401) {
+    Serial.println("[HTTP] ✗ API key rechazada (401). Revisá DEVICE_API_KEY en el firmware y el .env del servidor");
+    return false;
   }
 
   Serial.printf("[HTTP] ✗ Fallo. Codigo: %d\n", respuesta);

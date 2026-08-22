@@ -1,5 +1,6 @@
 import { Server as HttpServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
+import { allowedOrigins } from "../config";
 
 let io: SocketIOServer | null = null;
 
@@ -10,7 +11,7 @@ let io: SocketIOServer | null = null;
 export function initWebSocket(httpServer: HttpServer): SocketIOServer {
   io = new SocketIOServer(httpServer, {
     cors: {
-      origin: "*", // En producción, limitar a dominios específicos
+      origin: allowedOrigins.length > 0 ? allowedOrigins : "*", // En producción, limitar a dominios específicos vía CORS_ORIGIN
       methods: ["GET", "POST"],
     },
   });

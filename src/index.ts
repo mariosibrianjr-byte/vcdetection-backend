@@ -4,6 +4,8 @@ dotenv.config();
 import express from "express";
 import cors from "cors";
 import http from "http";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { prisma } from "./db";
 import { initWebSocket } from "./services/websocket";
 import { initFirebase } from "./services/firebase";
@@ -21,9 +23,27 @@ import dispositivosRoutes from "./routes/dispositivos";
 const app = express();
 const PORT = parseInt(process.env.PORT || "3000", 10);
 
+// Render y otros hosts ponen la app detrás de un proxy inverso.
+// Necesario para que express-rate-limit vea la IP real del cliente.
+app.set("trust proxy", 1);
+
+// Orígenes permitidos vía variable de entorno (separados por coma).
+import { allowedOrigins } from "./config";
+
 // Middleware global
-app.use(cors());
+app.use(helmet());
+app.use(cors({ origin: allowedOrigins.length > 0 ? allowedOrigins : true }));
 app.use(express.json());
+
+// Rate limiting para autenticación (evita brute force de login/registro)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Demasiados intentos. Intenta de nuevo en 15 minutos" },
+});
+app.use("/api/auth", authLimiter);
 
 // Logging de requests en desarrollo
 if (process.env.NODE_ENV === "development") {

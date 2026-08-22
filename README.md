@@ -48,8 +48,8 @@ El servidor arranca en `http://localhost:3000`.
 
 | Método | Ruta | Auth | Descripción |
 |--------|------|------|-------------|
-| POST | `/api/sensor/lectura` | ❌ | Recibe datos del ESP32 |
-| POST | `/api/auth/register` | ❌ | Crear usuario |
+| POST | `/api/sensor/lectura` | 🔑 API key | Recibe datos del ESP32 (header `x-device-key`) |
+| POST | `/api/auth/register` | ⚠️ Especial | Solo abierto si no existe ningún usuario; después requiere token ADMIN |
 | POST | `/api/auth/login` | ❌ | Login (retorna JWT) |
 | PATCH | `/api/auth/fcm-token` | ✅ | Actualizar token FCM |
 | GET | `/api/auth/me` | ✅ | Perfil del usuario |
@@ -61,6 +61,14 @@ El servidor arranca en `http://localhost:3000`.
 | GET | `/api/dispositivos/:id` | ✅ | Detalle de dispositivo |
 | PATCH | `/api/dispositivos/:id` | ✅ | Editar dispositivo |
 | GET | `/api/health` | ❌ | Health check |
+
+## Seguridad
+
+- **API key de dispositivos**: el ESP32 debe enviar el header `x-device-key: <DEVICE_API_KEY>`. Configúrala en el `.env` del servidor y en el firmware (`DEVICE_API_KEY`).
+- **Registro protegido**: el primer usuario se crea libre (bootstrap); después solo un ADMIN autenticado puede crear más cuentas vía `/register`.
+- **Rate limiting**: máximo 20 requests cada 15 min por IP en `/api/auth`.
+- **CORS**: configura `CORS_ORIGIN` con tus dominios separados por coma para restringir el acceso al dashboard/WebSocket.
+- **Cooldown de alertas en BD**: no se repiten alertas del mismo dispositivo dentro de 5 minutos, incluso si el servidor se reinicia.
 
 ## JSON de ejemplo (ESP32)
 

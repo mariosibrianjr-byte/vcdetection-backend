@@ -1,5 +1,5 @@
 import { prisma } from "./db";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 async function main() {
   const email = "admin@vcdetection.com";

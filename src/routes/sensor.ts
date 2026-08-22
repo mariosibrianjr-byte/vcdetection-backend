@@ -1,4 +1,5 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, NextFunction } from "express";
+import crypto from "crypto";
 import { prisma } from "../db";
 import { TipoAlerta } from "@prisma/client";
 import { emitNuevaAlerta, emitDispositivoUpdate, emitNuevaLectura } from "../services/websocket";
@@ -8,11 +9,43 @@ import { enviarEmailAlerta } from "../services/email";
 const router = Router();
 
 // ============================================
-// Cache de cooldown para evitar alertas repetidas
-// Map<dispositivoId, timestampUltimaAlerta>
+// Cooldown de alertas: se consulta contra la última alerta
+// guardada en la BD del dispositivo (sobrevive reinicios).
 // ============================================
-const alertaCooldown = new Map<string, number>();
 const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutos
+
+// ============================================
+// Autenticación del ESP32 mediante API key compartida.
+// El firmware debe enviar el header: x-device-key: <DEVICE_API_KEY>
+// ============================================
+function comparacionSegura(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  return bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB);
+}
+
+export function verificarApiKeyDispositivo(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  const apiKey = process.env.DEVICE_API_KEY;
+  const recibida = req.headers["x-device-key"];
+
+  if (!apiKey) {
+    res.status(500).json({
+      error: "DEVICE_API_KEY no configurada en el servidor. Configúrala en el .env",
+    });
+    return;
+  }
+
+  if (typeof recibida !== "string" || !comparacionSegura(recibida, apiKey)) {
+    res.status(401).json({ error: "API key de dispositivo inválida" });
+    return;
+  }
+
+  next();
+}
 
 // ============================================
 // Interfaz del JSON que envía el ESP32
@@ -36,17 +69,35 @@ interface LecturaESP32 {
 /**
  * POST /api/sensor/lectura
  * Recibe datos del ESP32, guarda lectura, evalúa alertas.
- * Este endpoint NO requiere autenticación (los ESP32 envían directamente).
+ * Requiere el header x-device-key con la DEVICE_API_KEY configurada.
  */
-router.post("/lectura", async (req: Request, res: Response): Promise<void> => {
-  try {
-    const data = req.body as LecturaESP32;
+router.post(
+  "/lectura",
+  verificarApiKeyDispositivo,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const data = req.body as LecturaESP32;
 
-    // Validación básica
-    if (!data.dispositivoId) {
-      res.status(400).json({ error: "dispositivoId es requerido" });
-      return;
-    }
+      // Validación básica
+      if (!data.dispositivoId || typeof data.dispositivoId !== "string") {
+        res.status(400).json({ error: "dispositivoId es requerido" });
+        return;
+      }
+
+      // Normalizar valores (evita undefined llegando a la BD y al WebSocket)
+      const valores = {
+        ppm135: data.ppm135 ?? 0,
+        ppm2: data.ppm2 ?? 0,
+        humoDetectado: data.humoDetectado ?? false,
+        tipo: data.tipo ?? "Desconocido",
+        picoSubito: data.picoSubito ?? false,
+        temperatura: data.temperatura ?? 0,
+        humedad: data.humedad ?? 0,
+        pm1: data.pm1 ?? -1,
+        pm25: data.pm25 ?? -1,
+        pm10: data.pm10 ?? -1,
+        co2: data.co2 ?? -1,
+      };
 
     // ---- Upsert del dispositivo ----
     const dispositivo = await prisma.dispositivo.upsert({
@@ -67,17 +118,7 @@ router.post("/lectura", async (req: Request, res: Response): Promise<void> => {
     const lectura = await prisma.lectura.create({
       data: {
         dispositivoId: dispositivo.id,
-        ppm135: data.ppm135 ?? 0,
-        ppm2: data.ppm2 ?? 0,
-        humoDetectado: data.humoDetectado ?? false,
-        tipo: data.tipo ?? "Desconocido",
-        picoSubito: data.picoSubito ?? false,
-        temperatura: data.temperatura ?? 0,
-        humedad: data.humedad ?? 0,
-        pm1: data.pm1 ?? -1,
-        pm25: data.pm25 ?? -1,
-        pm10: data.pm10 ?? -1,
-        co2: data.co2 ?? -1,
+        ...valores,
         timestamp: data.timestamp ?? new Date().toISOString(),
       },
     });
@@ -85,16 +126,7 @@ router.post("/lectura", async (req: Request, res: Response): Promise<void> => {
     // ---- Emitir lectura por WebSocket (para dashboard en vivo) ----
     emitNuevaLectura({
       dispositivoId: dispositivo.id,
-      ppm135: data.ppm135,
-      ppm2: data.ppm2,
-      humoDetectado: data.humoDetectado,
-      tipo: data.tipo,
-      temperatura: data.temperatura,
-      humedad: data.humedad,
-      pm1: data.pm1,
-      pm25: data.pm25,
-      pm10: data.pm10,
-      co2: data.co2,
+      ...valores,
     });
 
     // ---- Emitir actualización de dispositivo ----
@@ -107,37 +139,41 @@ router.post("/lectura", async (req: Request, res: Response): Promise<void> => {
     });
 
     // ---- Evaluar si se debe disparar alerta ----
-    const debeAlertar = data.humoDetectado === true || (data.pm25 !== -1 && data.pm25 > 35);
+    const debeAlertar =
+      valores.humoDetectado === true || (valores.pm25 !== -1 && valores.pm25 > 35);
 
     if (debeAlertar) {
-      // Verificar cooldown
-      const ultimaAlerta = alertaCooldown.get(dispositivo.id);
-      const ahora = Date.now();
+      // Verificar cooldown contra la última alerta en la BD
+      // (sobrevive reinicios del servidor y funciona con varias instancias)
+      const alertaReciente = await prisma.alerta.findFirst({
+        where: {
+          dispositivoId: dispositivo.id,
+          fecha: { gte: new Date(Date.now() - COOLDOWN_MS) },
+        },
+        select: { id: true },
+      });
 
-      if (ultimaAlerta && ahora - ultimaAlerta < COOLDOWN_MS) {
+      if (alertaReciente) {
         // Cooldown activo, no crear nueva alerta
-        console.log(
-          `[SENSOR] Cooldown activo para ${dispositivo.nombre}, faltan ${Math.round(
-            (COOLDOWN_MS - (ahora - ultimaAlerta)) / 1000
-          )}s`
-        );
+        console.log(`[SENSOR] Cooldown activo para ${dispositivo.nombre}`);
       } else {
         // Determinar tipo de alerta
         let tipoAlerta: TipoAlerta = TipoAlerta.PM25_ALTO;
         let mensaje = "";
+        const tipoTexto = valores.tipo.toLowerCase(); // FIX: evita crash si el ESP32 no envía "tipo"
 
-        if (data.tipo.toLowerCase().includes("alta confianza")) {
+        if (tipoTexto.includes("alta confianza")) {
           tipoAlerta = TipoAlerta.ALTA_CONFIANZA;
-          mensaje = `Detección de ALTA CONFIANZA en ${dispositivo.salon}. MQ135: ${data.ppm135}, MQ2: ${data.ppm2}, PM2.5: ${data.pm25}. Se detectaron múltiples indicadores simultáneamente.`;
-        } else if (data.tipo.toLowerCase().includes("vape")) {
+          mensaje = `Detección de ALTA CONFIANZA en ${dispositivo.salon}. MQ135: ${valores.ppm135}, MQ2: ${valores.ppm2}, PM2.5: ${valores.pm25}. Se detectaron múltiples indicadores simultáneamente.`;
+        } else if (tipoTexto.includes("vape")) {
           tipoAlerta = TipoAlerta.VAPE_CONFIRMADO;
-          mensaje = `Vape CONFIRMADO en ${dispositivo.salon}. MQ135: ${data.ppm135} ppm, humedad elevada: ${data.humedad}%. Los niveles de gas y humedad coinciden con patrón de vapeo.`;
-        } else if (data.tipo.toLowerCase().includes("cigarrillo")) {
+          mensaje = `Vape CONFIRMADO en ${dispositivo.salon}. MQ135: ${valores.ppm135} ppm, humedad elevada: ${valores.humedad}%. Los niveles de gas y humedad coinciden con patrón de vapeo.`;
+        } else if (tipoTexto.includes("cigarrillo")) {
           tipoAlerta = TipoAlerta.CIGARRILLO;
-          mensaje = `Cigarrillo detectado en ${dispositivo.salon}. MQ135: ${data.ppm135} ppm. Patrón consistente con humo de tabaco.`;
-        } else if (data.pm25 > 35) {
+          mensaje = `Cigarrillo detectado en ${dispositivo.salon}. MQ135: ${valores.ppm135} ppm. Patrón consistente con humo de tabaco.`;
+        } else if (valores.pm25 > 35) {
           tipoAlerta = TipoAlerta.PM25_ALTO;
-          mensaje = `PM2.5 alto en ${dispositivo.salon}: ${data.pm25} µg/m³ (límite: 35). Posible humo de vape o cigarrillo.`;
+          mensaje = `PM2.5 alto en ${dispositivo.salon}: ${valores.pm25} µg/m³ (límite: 35). Posible humo de vape o cigarrillo.`;
         }
 
         // Crear alerta en DB
@@ -148,9 +184,6 @@ router.post("/lectura", async (req: Request, res: Response): Promise<void> => {
             mensaje,
           },
         });
-
-        // Actualizar cooldown
-        alertaCooldown.set(dispositivo.id, ahora);
 
         console.log(
           `[ALERTA] ${tipoAlerta} en ${dispositivo.salon}: ${mensaje}`
