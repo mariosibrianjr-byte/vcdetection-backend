@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "VCDetection",
+    "slug": "vcdetection",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.vcdetection.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#080d14",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "com.vcdetection.app",
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "5b58e5a3-00ba-4c8f-8c39-a75b6309558c"
+      }
+    }
+  }
+}

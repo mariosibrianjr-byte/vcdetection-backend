@@ -1,0 +1,31 @@
+# Dependencias
+node_modules/
+**/node_modules/
+
+# Builds y artefactos
+dist/
+build/
+release/
+*.asar
+frontend/release/
+
+# Archivos comprimidos de respaldo
+*.rar
+*.zip
+
+# Variables de entorno (contienen secretos)
+.env
+.env.local
+.env.*.local
+
+# Expo / React Native
+.expo/
+*.log
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/

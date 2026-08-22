@@ -1,0 +1,54 @@
+{
+  "name": "vcdetection-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "electron/main.cjs",
+  "author": "VCDetection Team",
+  "description": "VCDetection — Panel de Control de Escritorio para monitoreo de calidad de aire en colegios",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:build": "tsc && vite build && electron-builder --win --dir",
+    "electron:dist": "tsc && vite build && electron-builder --win"
+  },
+  "build": {
+    "appId": "com.vcdetection.desktop",
+    "productName": "VCDetection",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "concurrently": "^9.1.0",
+    "electron": "^35.0.0",
+    "electron-builder": "^26.0.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.0",
+    "wait-on": "^8.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.18.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-router-dom": "^7.18.0",
+    "recharts": "^3.9.0",
+    "socket.io-client": "^4.8.3"
+  }
+}
