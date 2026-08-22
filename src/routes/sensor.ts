@@ -52,8 +52,10 @@ export function verificarApiKeyDispositivo(
 // ============================================
 interface LecturaESP32 {
   dispositivoId: string;
-  ppm135: number;
-  ppm2: number;
+  // Formato nuevo (MQ7): ppmCO. Formato viejo (MQ135/MQ2): ppm135/ppm2.
+  ppm135?: number;
+  ppm2?: number;
+  ppmCO?: number;
   humoDetectado: boolean;
   tipo: string;
   picoSubito: boolean;
@@ -86,7 +88,9 @@ router.post(
 
       // Normalizar valores (evita undefined llegando a la BD y al WebSocket)
       const valores = {
-        ppm135: data.ppm135 ?? 0,
+        // El firmware nuevo envía ppmCO (MQ7); el column ppm135 se usa como
+        // valor de gas genérico para no romper dashboards existentes.
+        ppm135: data.ppm135 ?? data.ppmCO ?? 0,
         ppm2: data.ppm2 ?? 0,
         humoDetectado: data.humoDetectado ?? false,
         tipo: data.tipo ?? "Desconocido",
@@ -164,13 +168,13 @@ router.post(
 
         if (tipoTexto.includes("alta confianza")) {
           tipoAlerta = TipoAlerta.ALTA_CONFIANZA;
-          mensaje = `Detección de ALTA CONFIANZA en ${dispositivo.salon}. MQ135: ${valores.ppm135}, MQ2: ${valores.ppm2}, PM2.5: ${valores.pm25}. Se detectaron múltiples indicadores simultáneamente.`;
+          mensaje = `Detección de ALTA CONFIANZA en ${dispositivo.salon}. CO (MQ7): ${valores.ppm135}, PM2.5: ${valores.pm25}. Se detectaron múltiples indicadores simultáneamente.`;
         } else if (tipoTexto.includes("vape")) {
           tipoAlerta = TipoAlerta.VAPE_CONFIRMADO;
-          mensaje = `Vape CONFIRMADO en ${dispositivo.salon}. MQ135: ${valores.ppm135} ppm, humedad elevada: ${valores.humedad}%. Los niveles de gas y humedad coinciden con patrón de vapeo.`;
+          mensaje = `Vape CONFIRMADO en ${dispositivo.salon}. CO (MQ7): ${valores.ppm135} ppm, humedad elevada: ${valores.humedad}%. Los niveles de gas y humedad coinciden con patrón de vapeo.`;
         } else if (tipoTexto.includes("cigarrillo")) {
           tipoAlerta = TipoAlerta.CIGARRILLO;
-          mensaje = `Cigarrillo detectado en ${dispositivo.salon}. MQ135: ${valores.ppm135} ppm. Patrón consistente con humo de tabaco.`;
+          mensaje = `Cigarrillo detectado en ${dispositivo.salon}. CO (MQ7): ${valores.ppm135} ppm. Patrón consistente con humo de tabaco.`;
         } else if (valores.pm25 > 35) {
           tipoAlerta = TipoAlerta.PM25_ALTO;
           mensaje = `PM2.5 alto en ${dispositivo.salon}: ${valores.pm25} µg/m³ (límite: 35). Posible humo de vape o cigarrillo.`;
