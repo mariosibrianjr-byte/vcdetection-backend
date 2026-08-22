@@ -97,17 +97,13 @@ function SalonModal({
   const chartData: any[] = rango === 'live'
     ? historial.slice(-20).map((l, i) => ({
         i,
-        mq135: parseFloat(l.ppm135.toFixed(1)),
-        mq2: parseFloat(l.ppm2.toFixed(1)),
-        hum: parseFloat(l.humedad.toFixed(1)),
+        co: parseFloat(l.ppm135.toFixed(1)),
         pm25: l.pm25 > 0 ? l.pm25 : 0,
         co2: l.co2 > 0 ? l.co2 : 0,
       }))
     : histo.map(p => ({
         hora: new Date(p.hora).toLocaleString('es-SV', rango === '1' ? { hour: '2-digit', minute: '2-digit' } : { day: '2-digit', month: 'short', hour: '2-digit' }),
-        mq135: p.ppm135,
-        mq2: p.ppm2,
-        hum: p.humedad,
+        co: p.ppm135,
         pm25: p.pm25 > 0 ? p.pm25 : 0,
         co2: p.co2 > 0 ? p.co2 : 0,
       }));
@@ -165,16 +161,9 @@ function SalonModal({
           {/* Métricas actuales */}
           <div className="modal-metrics-grid">
             <div className="modal-metric-card">
-              <div className="modal-metric-label">MQ135</div>
+              <div className="modal-metric-label">CO (MQ7)</div>
               <div className="modal-metric-val" style={{ color: 'var(--blue)' }}>
                 {lectura ? lectura.ppm135.toFixed(1) : '--'}
-              </div>
-              <div className="modal-metric-unit">ppm</div>
-            </div>
-            <div className="modal-metric-card">
-              <div className="modal-metric-label">MQ2</div>
-              <div className="modal-metric-val" style={{ color: 'var(--purple)' }}>
-                {lectura ? lectura.ppm2.toFixed(1) : '--'}
               </div>
               <div className="modal-metric-unit">ppm</div>
             </div>
@@ -186,25 +175,18 @@ function SalonModal({
               <div className="modal-metric-unit">µg/m³</div>
             </div>
             <div className="modal-metric-card">
+              <div className="modal-metric-label">PM10</div>
+              <div className="modal-metric-val" style={{ color: 'var(--purple)' }}>
+                {lectura && lectura.pm10 >= 0 ? lectura.pm10 : '--'}
+              </div>
+              <div className="modal-metric-unit">µg/m³</div>
+            </div>
+            <div className="modal-metric-card">
               <div className="modal-metric-label">CO₂</div>
               <div className="modal-metric-val" style={{ color: lectura && lectura.co2 > 2000 ? 'var(--red)' : lectura && lectura.co2 >= 1000 ? 'var(--yellow)' : 'var(--green)' }}>
                 {lectura && lectura.co2 >= 0 ? lectura.co2 : '--'}
               </div>
               <div className="modal-metric-unit">ppm</div>
-            </div>
-            <div className="modal-metric-card">
-              <div className="modal-metric-label">Temperatura</div>
-              <div className="modal-metric-val" style={{ color: 'var(--yellow)' }}>
-                {lectura ? lectura.temperatura.toFixed(1) : '--'}
-              </div>
-              <div className="modal-metric-unit">°C</div>
-            </div>
-            <div className="modal-metric-card">
-              <div className="modal-metric-label">Humedad</div>
-              <div className="modal-metric-val" style={{ color: 'var(--blue)' }}>
-                {lectura ? lectura.humedad.toFixed(1) : '--'}
-              </div>
-              <div className="modal-metric-unit">%</div>
             </div>
             <div className="modal-metric-card">
               <div className="modal-metric-label">Última señal</div>
@@ -221,26 +203,16 @@ function SalonModal({
           {!cargandoHisto && chartData.length > 1 && (
             <>
               <div className="chart-title">
-                {rango === 'live' ? `Gases en vivo (últimas ${chartData.length} lecturas)` : `Promedios por hora — últimos ${rango} día(s)`}
+                {rango === 'live' ? `CO, CO₂ y PM2.5 en vivo (últimas ${chartData.length} lecturas)` : `Promedios por hora — últimos ${rango} día(s)`}
               </div>
-              <ResponsiveContainer width="100%" height={160}>
+              <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={chartData}>
                   <XAxis dataKey={rango === 'live' ? 'i' : 'hora'} hide={rango === 'live'} tick={{ fill: '#94a3b8', fontSize: 10 }} minTickGap={28} />
                   <YAxis domain={['auto', 'auto']} tick={{ fill: '#94a3b8', fontSize: 11 }} width={40} />
                   <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: '#64748b', fontWeight: 600 }} />
-                  <Line type="monotone" dataKey="mq135" stroke="var(--blue)" strokeWidth={2.5} dot={false} name="Gas MQ (ppm)" />
+                  <Line type="monotone" dataKey="co" stroke="var(--blue)" strokeWidth={2.5} dot={false} name="CO MQ7 (ppm)" />
                   <Line type="monotone" dataKey="co2" stroke="var(--green)" strokeWidth={2.5} dot={false} name="CO₂ (ppm)" />
-                  {rango !== 'live' && <Line type="monotone" dataKey="pm25" stroke="var(--purple)" strokeWidth={2} dot={false} name="PM2.5 (µg/m³)" />}
-                </LineChart>
-              </ResponsiveContainer>
-
-              <div className="chart-title" style={{ marginTop: 20 }}>Humedad (%)</div>
-              <ResponsiveContainer width="100%" height={120}>
-                <LineChart data={chartData}>
-                  <XAxis dataKey={rango === 'live' ? 'i' : 'hora'} hide={rango === 'live'} tick={{ fill: '#94a3b8', fontSize: 10 }} minTickGap={28} />
-                  <YAxis domain={['auto', 'auto']} tick={{ fill: '#94a3b8', fontSize: 11 }} width={40} />
-                  <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: '#64748b', fontWeight: 600 }} />
-                  <Line type="monotone" dataKey="hum" stroke="var(--purple)" strokeWidth={2.5} dot={false} name="Humedad %" />
+                  <Line type="monotone" dataKey="pm25" stroke="var(--purple)" strokeWidth={2} dot={false} name="PM2.5 (µg/m³)" />
                 </LineChart>
               </ResponsiveContainer>
             </>
@@ -411,20 +383,8 @@ function SalonCard({
       <span className={`salon-tipo ${tipoClase[estado]}`}>{tipo}</span>
       <div className="salon-metrics">
         <div className="metric">
-          <div className="metric-label">MQ135</div>
+          <div className="metric-label">CO (MQ7)</div>
           <div className="metric-value">{lectura ? lectura.ppm135.toFixed(1) : '--'}<span className="metric-unit"> ppm</span></div>
-        </div>
-        <div className="metric">
-          <div className="metric-label">MQ2</div>
-          <div className="metric-value">{lectura ? lectura.ppm2.toFixed(1) : '--'}<span className="metric-unit"> ppm</span></div>
-        </div>
-        <div className="metric">
-          <div className="metric-label">Humedad</div>
-          <div className="metric-value">{lectura ? lectura.humedad.toFixed(0) : '--'}<span className="metric-unit"> %</span></div>
-        </div>
-        <div className="metric">
-          <div className="metric-label">Temp</div>
-          <div className="metric-value">{lectura ? lectura.temperatura.toFixed(1) : '--'}<span className="metric-unit"> °C</span></div>
         </div>
         <div className="metric">
           <div className="metric-label">PM2.5</div>
@@ -433,9 +393,9 @@ function SalonCard({
           </div>
         </div>
         <div className="metric">
-          <div className="metric-label">CO2</div>
-          <div className="metric-value" style={{ color: lectura && lectura.co2 > 1000 ? 'var(--red)' : undefined }}>
-            {lectura && lectura.co2 >= 0 ? lectura.co2 : '--'}<span className="metric-unit"> ppm</span>
+          <div className="metric-label">PM10</div>
+          <div className="metric-value">
+            {lectura && lectura.pm10 >= 0 ? lectura.pm10 : '--'}<span className="metric-unit"> µg</span>
           </div>
         </div>
         <div className="metric">
