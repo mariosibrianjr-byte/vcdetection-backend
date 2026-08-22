@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import type { FormEvent } from 'react';
 import axios from 'axios';
 import { io, Socket } from 'socket.io-client';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import {
-  type Dispositivo, type Lectura, type Alerta,
+  type Dispositivo, type Lectura, type Alerta, type Usuario,
   calcularEstado, type EstadoSalon,
   tipoAlertaIcono, tipoAlertaClase, tipoAlertaLabel,
   formatTiempoRelativo
@@ -34,30 +35,90 @@ function ToastAlerta({ toast, onClose }: { toast: Toast; onClose: () => void }) 
 }
 
 // ─── Modal de Detalle de Salón ────────────────────────────────────────────────
+type Rango = 'live' | '1' | '7' | '30';
+
+interface PuntoHistorico {
+  hora: string;
+  ppm135: number;
+  ppm2: number;
+  pm25: number;
+  co2: number;
+  humedad: number;
+  temperatura: number;
+  total: number;
+}
+
 function SalonModal({
   dispositivo,
   lectura,
   historial,
-  onClose
+  esAdmin,
+  onClose,
+  onDeleted
 }: {
   dispositivo: Dispositivo;
   lectura?: Lectura;
   historial: Lectura[];
+  esAdmin: boolean;
   onClose: () => void;
+  onDeleted: () => void;
 }) {
   const estado = calcularEstado(dispositivo, lectura);
   const colores: Record<EstadoSalon, string> = {
     verde: 'var(--green)', amarillo: 'var(--yellow)', rojo: 'var(--red)', offline: 'var(--gray)'
   };
 
-  const chartData = historial.slice(-20).map((l, i) => ({
-    i,
-    mq135: parseFloat(l.ppm135.toFixed(1)),
-    mq2: parseFloat(l.ppm2.toFixed(1)),
-    hum: parseFloat(l.humedad.toFixed(1)),
-    pm25: l.pm25 > 0 ? l.pm25 : 0,
-    co2: l.co2 > 0 ? l.co2 : 0,
-  }));
+  const [rango, setRango] = useState<Rango>('live');
+  const [histo, setHisto] = useState<PuntoHistorico[]>([]);
+  const [cargandoHisto, setCargandoHisto] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
+
+  useEffect(() => {
+    if (rango === 'live') { setHisto([]); return; }
+    setCargandoHisto(true);
+    axios.get(`${API_URL}/api/dispositivos/${dispositivo.id}/historico?dias=${rango}`)
+      .then(r => setHisto(r.data.puntos))
+      .catch(() => setHisto([]))
+      .finally(() => setCargandoHisto(false));
+  }, [rango, dispositivo.id]);
+
+  const eliminarDispositivo = async () => {
+    if (!confirm(`¿Eliminar "${dispositivo.salon}" y TODOS sus datos?\nEsta acción no se puede deshacer.`)) return;
+    setEliminando(true);
+    try {
+      await axios.delete(`${API_URL}/api/dispositivos/${dispositivo.id}`);
+      onDeleted();
+    } catch {
+      alert('No se pudo eliminar el dispositivo');
+      setEliminando(false);
+    }
+  };
+
+  const chartData: any[] = rango === 'live'
+    ? historial.slice(-20).map((l, i) => ({
+        i,
+        mq135: parseFloat(l.ppm135.toFixed(1)),
+        mq2: parseFloat(l.ppm2.toFixed(1)),
+        hum: parseFloat(l.humedad.toFixed(1)),
+        pm25: l.pm25 > 0 ? l.pm25 : 0,
+        co2: l.co2 > 0 ? l.co2 : 0,
+      }))
+    : histo.map(p => ({
+        hora: new Date(p.hora).toLocaleString('es-SV', rango === '1' ? { hour: '2-digit', minute: '2-digit' } : { day: '2-digit', month: 'short', hour: '2-digit' }),
+        mq135: p.ppm135,
+        mq2: p.ppm2,
+        hum: p.humedad,
+        pm25: p.pm25 > 0 ? p.pm25 : 0,
+        co2: p.co2 > 0 ? p.co2 : 0,
+      }));
+
+  const tooltipStyle = {
+    background: '#ffffff',
+    border: '1px solid #e2e8f0',
+    borderRadius: 12,
+    fontSize: 12,
+    boxShadow: '0 10px 30px -10px rgba(30,41,59,0.15)'
+  };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -72,10 +133,35 @@ function SalonModal({
               {estado === 'offline' ? '● Offline' : lectura?.tipo || 'Sin datos'}
             </span>
           </div>
-          <button className="btn-close" id="btn-close-modal" onClick={onClose}>✕</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {esAdmin && (
+              <button
+                className="btn-danger"
+                title="Eliminar dispositivo y todos sus datos"
+                disabled={eliminando}
+                onClick={eliminarDispositivo}
+              >
+                🗑
+              </button>
+            )}
+            <button className="btn-close" id="btn-close-modal" onClick={onClose}>✕</button>
+          </div>
         </div>
 
         <div className="modal-body">
+          {/* Pestañas de rango */}
+          <div className="tabs-row">
+            {([['live','En vivo'],['1','24 horas'],['7','7 días'],['30','30 días']] as [Rango,string][]).map(([val,label]) => (
+              <button
+                key={val}
+                className={`tab ${rango === val ? 'tab-activa' : ''}`}
+                onClick={() => setRango(val)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           {/* Métricas actuales */}
           <div className="modal-metrics-grid">
             <div className="modal-metric-card">
@@ -129,36 +215,166 @@ function SalonModal({
           </div>
 
           {/* Gráfica de historial */}
-          {chartData.length > 1 && (
+          {cargandoHisto && (
+            <div className="chart-vacio">Cargando historial…</div>
+          )}
+          {!cargandoHisto && chartData.length > 1 && (
             <>
-              <div className="chart-title">Historial Gases (últimas {chartData.length} lecturas)</div>
+              <div className="chart-title">
+                {rango === 'live' ? `Gases en vivo (últimas ${chartData.length} lecturas)` : `Promedios por hora — últimos ${rango} día(s)`}
+              </div>
               <ResponsiveContainer width="100%" height={160}>
                 <LineChart data={chartData}>
-                  <XAxis dataKey="i" hide />
+                  <XAxis dataKey={rango === 'live' ? 'i' : 'hora'} hide={rango === 'live'} tick={{ fill: '#94a3b8', fontSize: 10 }} minTickGap={28} />
                   <YAxis domain={['auto', 'auto']} tick={{ fill: '#94a3b8', fontSize: 11 }} width={40} />
-                  <Tooltip
-                    contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, fontSize: 12, boxShadow: '0 10px 30px -10px rgba(30,41,59,0.15)' }}
-                    labelStyle={{ display: 'none' }}
-                  />
-                  <Line type="monotone" dataKey="mq135" stroke="var(--blue)" strokeWidth={2.5} dot={false} name="MQ135 ppm" />
-                  <Line type="monotone" dataKey="mq2" stroke="var(--purple)" strokeWidth={2.5} dot={false} name="MQ2 ppm" />
-                  <Line type="monotone" dataKey="co2" stroke="var(--green)" strokeWidth={2.5} dot={false} name="CO2 ppm" yAxisId="right" />
+                  <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: '#64748b', fontWeight: 600 }} />
+                  <Line type="monotone" dataKey="mq135" stroke="var(--blue)" strokeWidth={2.5} dot={false} name="Gas MQ (ppm)" />
+                  <Line type="monotone" dataKey="co2" stroke="var(--green)" strokeWidth={2.5} dot={false} name="CO₂ (ppm)" />
+                  {rango !== 'live' && <Line type="monotone" dataKey="pm25" stroke="var(--purple)" strokeWidth={2} dot={false} name="PM2.5 (µg/m³)" />}
                 </LineChart>
               </ResponsiveContainer>
 
               <div className="chart-title" style={{ marginTop: 20 }}>Humedad (%)</div>
               <ResponsiveContainer width="100%" height={120}>
                 <LineChart data={chartData}>
-                  <XAxis dataKey="i" hide />
+                  <XAxis dataKey={rango === 'live' ? 'i' : 'hora'} hide={rango === 'live'} tick={{ fill: '#94a3b8', fontSize: 10 }} minTickGap={28} />
                   <YAxis domain={['auto', 'auto']} tick={{ fill: '#94a3b8', fontSize: 11 }} width={40} />
-                  <Tooltip
-                    contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, fontSize: 12, boxShadow: '0 10px 30px -10px rgba(30,41,59,0.15)' }}
-                    labelStyle={{ display: 'none' }}
-                  />
+                  <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: '#64748b', fontWeight: 600 }} />
                   <Line type="monotone" dataKey="hum" stroke="var(--purple)" strokeWidth={2.5} dot={false} name="Humedad %" />
                 </LineChart>
               </ResponsiveContainer>
             </>
+          )}
+          {!cargandoHisto && chartData.length <= 1 && (
+            <div className="chart-vacio">
+              {rango === 'live' ? 'Esperando lecturas en tiempo real…' : 'Sin datos en este rango'}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Panel de Gestión de Usuarios ─────────────────────────────────────────────
+function UsuariosModal({ onClose }: { onClose: () => void }) {
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [form, setForm] = useState({ email: '', password: '', nombre: '', rol: 'COORDINADOR' });
+  const [error, setError] = useState('');
+  const [ok, setOk] = useState('');
+  const [cargando, setCargando] = useState(true);
+  const [creando, setCreando] = useState(false);
+
+  const cargar = useCallback(async () => {
+    try {
+      const r = await axios.get(`${API_URL}/api/auth/users`);
+      setUsuarios(r.data.usuarios);
+    } catch {
+      setError('No se pudieron cargar los usuarios');
+    } finally {
+      setCargando(false);
+    }
+  }, []);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const crear = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(''); setOk(''); setCreando(true);
+    try {
+      await axios.post(`${API_URL}/api/auth/register`, form);
+      setOk(`✅ Usuario ${form.email} creado correctamente`);
+      setForm({ email: '', password: '', nombre: '', rol: 'COORDINADOR' });
+      cargar();
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Error al crear el usuario');
+    } finally {
+      setCreando(false);
+    }
+  };
+
+  const eliminar = async (u: Usuario) => {
+    if (!confirm(`¿Eliminar la cuenta de ${u.email}?`)) return;
+    setError(''); setOk('');
+    try {
+      await axios.delete(`${API_URL}/api/auth/users/${u.id}`);
+      setOk(`Usuario ${u.email} eliminado`);
+      cargar();
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Error al eliminar');
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal modal-usuarios" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>👥 Gestión de usuarios</h2>
+          <button className="btn-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          {error && <div className="login-error">{error}</div>}
+          {ok && <div className="msg-ok">{ok}</div>}
+
+          <form onSubmit={crear} className="usuario-form">
+            <div className="form-row">
+              <div className="form-group">
+                <label>Nombre</label>
+                <input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })}
+                  placeholder="María Pérez" required maxLength={60} />
+              </div>
+              <div className="form-group">
+                <label>Rol</label>
+                <select value={form.rol} onChange={e => setForm({ ...form, rol: e.target.value })}>
+                  <option value="COORDINADOR">Coordinador</option>
+                  <option value="ADMIN">Administrador</option>
+                </select>
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Correo electrónico</label>
+                <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
+                  placeholder="usuario@colegio.edu" required />
+              </div>
+              <div className="form-group">
+                <label>Contraseña</label>
+                <input type="text" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
+                  placeholder="Mínimo 8 caracteres" required minLength={8} />
+              </div>
+            </div>
+            <button type="submit" className="btn-primary" disabled={creando}>
+              {creando ? 'Creando…' : '+ Crear usuario'}
+            </button>
+          </form>
+
+          <div className="section-title" style={{ marginTop: 24, marginBottom: 10 }}>
+            Cuentas existentes ({usuarios.length})
+          </div>
+          {cargando ? (
+            <div className="chart-vacio">Cargando…</div>
+          ) : (
+            <div className="usuarios-lista">
+              {usuarios.map(u => (
+                <div key={u.id} className="usuario-item">
+                  <div className="usuario-avatar">{u.nombre.charAt(0).toUpperCase()}</div>
+                  <div className="usuario-info">
+                    <div className="usuario-nombre">{u.nombre}</div>
+                    <div className="usuario-email">{u.email}</div>
+                  </div>
+                  <span className={`usuario-rol ${u.rol === 'ADMIN' ? 'rol-admin' : 'rol-coord'}`}>
+                    {u.rol === 'ADMIN' ? 'Administrador' : 'Coordinador'}
+                  </span>
+                  <button
+                    className="btn-danger btn-sm"
+                    title={`Eliminar a ${u.email}`}
+                    onClick={() => eliminar(u)}
+                  >
+                    🗑
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
@@ -244,6 +460,7 @@ export default function DashboardPage() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [modalDisp, setModalDisp] = useState<Dispositivo | null>(null);
   const [alertasNoVistas, setAlertasNoVistas] = useState(0);
+  const [showUsuarios, setShowUsuarios] = useState(false);
   const socketRef = useRef<Socket | null>(null);
 
   const sonarAlertar = useCallback(() => {
@@ -343,6 +560,11 @@ export default function DashboardPage() {
             <span className="navbar-badge">🔔 {alertasNoVistas}</span>
           )}
           <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{usuario?.nombre}</span>
+          {usuario?.rol === 'ADMIN' && (
+            <button id="btn-usuarios" className="btn-nav" onClick={() => setShowUsuarios(true)}>
+              👥 Usuarios
+            </button>
+          )}
           <button id="btn-logout" className="btn-logout" onClick={logout}>Salir</button>
         </div>
       </nav>
@@ -441,9 +663,17 @@ export default function DashboardPage() {
           dispositivo={modalDisp}
           lectura={lecturas[modalDisp.id]}
           historial={historial[modalDisp.id] || []}
+          esAdmin={usuario?.rol === 'ADMIN'}
           onClose={() => setModalDisp(null)}
+          onDeleted={() => {
+            setDispositivos(prev => prev.filter(d => d.id !== modalDisp.id));
+            setModalDisp(null);
+          }}
         />
       )}
+
+      {/* Modal de usuarios */}
+      {showUsuarios && <UsuariosModal onClose={() => setShowUsuarios(false)} />}
 
       {/* Toasts */}
       <div className="toast-container">

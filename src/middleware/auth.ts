@@ -41,3 +41,15 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
     return;
   }
 }
+
+/**
+ * Middleware que exige rol ADMIN.
+ * Debe ejecutarse DESPUÉS de authMiddleware.
+ */
+export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
+  if (!req.user || req.user.rol !== "ADMIN") {
+    res.status(403).json({ error: "Esta acción requiere permisos de administrador" });
+    return;
+  }
+  next();
+}

@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "../db";
-import { authMiddleware } from "../middleware/auth";
+import { authMiddleware, requireAdmin } from "../middleware/auth";
 
 const router = Router();
 
@@ -236,6 +236,66 @@ router.get(
     } catch (error) {
       console.error("[AUTH] Error en /me:", error);
       res.status(500).json({ error: "Error interno" });
+    }
+  }
+);
+
+/**
+ * GET /api/auth/users
+ * Listar todos los usuarios (solo ADMIN).
+ */
+router.get(
+  "/users",
+  authMiddleware,
+  requireAdmin,
+  async (_req: Request, res: Response): Promise<void> => {
+    try {
+      const usuarios = await prisma.usuario.findMany({
+        select: {
+          id: true,
+          email: true,
+          nombre: true,
+          rol: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "asc" },
+      });
+
+      res.json({ ok: true, usuarios });
+    } catch (error) {
+      console.error("[AUTH] Error listando usuarios:", error);
+      res.status(500).json({ error: "Error interno al listar usuarios" });
+    }
+  }
+);
+
+/**
+ * DELETE /api/auth/users/:id
+ * Eliminar un usuario (solo ADMIN). No permite eliminar la propia cuenta.
+ */
+router.delete(
+  "/users/:id",
+  authMiddleware,
+  requireAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+
+      if (id === req.user!.userId) {
+        res.status(400).json({ error: "No puedes eliminar tu propia cuenta" });
+        return;
+      }
+
+      await prisma.usuario.delete({ where: { id } });
+
+      res.json({ ok: true, mensaje: "Usuario eliminado" });
+    } catch (error: any) {
+      if (error.code === "P2025") {
+        res.status(404).json({ error: "Usuario no encontrado" });
+        return;
+      }
+      console.error("[AUTH] Error eliminando usuario:", error);
+      res.status(500).json({ error: "Error interno al eliminar usuario" });
     }
   }
 );

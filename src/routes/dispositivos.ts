@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../db";
-import { authMiddleware } from "../middleware/auth";
+import { authMiddleware, requireAdmin } from "../middleware/auth";
 
 const router = Router();
 
@@ -164,5 +165,100 @@ router.patch("/:id", async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ error: "Error interno" });
   }
 });
+
+/**
+ * GET /api/dispositivos/:id/historico?dias=7
+ * Historial agregado por horas (promedios) para gráficas de tendencias.
+ * Rango permitido: 1 a 30 días. Devuelve máx ~720 puntos.
+ */
+router.get("/:id/historico", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const dias = Math.min(Math.max(parseInt(req.query.dias as string) || 7, 1), 30);
+    const desde = new Date(Date.now() - dias * 24 * 60 * 60 * 1000);
+
+    const existe = await prisma.dispositivo.findUnique({ where: { id }, select: { id: true } });
+    if (!existe) {
+      res.status(404).json({ error: "Dispositivo no encontrado" });
+      return;
+    }
+
+    const puntos = await prisma.$queryRaw<
+      {
+        hora: Date;
+        ppm135: number | null;
+        ppm2: number | null;
+        pm25: number | null;
+        co2: number | null;
+        humedad: number | null;
+        temperatura: number | null;
+        alertas: bigint;
+      }[]
+    >(Prisma.sql`
+      SELECT
+        date_trunc('hour', fecha)                       AS hora,
+        AVG("ppm135")::float                            AS "ppm135",
+        AVG("ppm2")::float                              AS "ppm2",
+        AVG("pm25")::float                              AS "pm25",
+        AVG("co2")::float                               AS "co2",
+        AVG("humedad")::float                           AS "humedad",
+        AVG("temperatura")::float                       AS "temperatura",
+        COUNT(*)::bigint                                AS total
+      FROM lecturas
+      WHERE "dispositivoId" = ${id} AND fecha >= ${desde}
+      GROUP BY 1
+      ORDER BY 1 ASC
+    `);
+
+    res.json({
+      ok: true,
+      dias,
+      puntos: puntos.map((p) => ({
+        hora: p.hora,
+        ppm135: Number((p.ppm135 ?? 0).toFixed(2)),
+        ppm2: Number((p.ppm2 ?? 0).toFixed(2)),
+        pm25: Number((p.pm25 ?? 0).toFixed(2)),
+        co2: Math.round(p.co2 ?? 0),
+        humedad: Number((p.humedad ?? 0).toFixed(1)),
+        temperatura: Number((p.temperatura ?? 0).toFixed(1)),
+        total: Number(p.alertas),
+      })),
+    });
+  } catch (error) {
+    console.error("[DISPOSITIVOS] Error obteniendo histórico:", error);
+    res.status(500).json({ error: "Error interno al obtener histórico" });
+  }
+});
+
+/**
+ * DELETE /api/dispositivos/:id
+ * Eliminar un dispositivo y TODOS sus datos (lecturas + alertas). Solo ADMIN.
+ */
+router.delete(
+  "/:id",
+  authMiddleware,
+  requireAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+
+      await prisma.$transaction([
+        prisma.lectura.deleteMany({ where: { dispositivoId: id } }),
+        prisma.alerta.deleteMany({ where: { dispositivoId: id } }),
+        prisma.dispositivo.delete({ where: { id } }),
+      ]);
+
+      console.log(`[DISPOSITIVOS] Dispositivo ${id} eliminado junto con sus datos`);
+      res.json({ ok: true, mensaje: "Dispositivo eliminado" });
+    } catch (error: any) {
+      if (error.code === "P2025") {
+        res.status(404).json({ error: "Dispositivo no encontrado" });
+        return;
+      }
+      console.error("[DISPOSITIVOS] Error eliminando:", error);
+      res.status(500).json({ error: "Error interno al eliminar dispositivo" });
+    }
+  }
+);
 
 export default router;
