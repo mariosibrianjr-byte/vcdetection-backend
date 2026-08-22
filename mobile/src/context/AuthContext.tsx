@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../config';
+import { registrarPushToken } from '../lib/push';
 import type { Usuario } from '../types';
 
 interface AuthContextType {
@@ -27,6 +28,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (savedToken && savedUser) {
           setToken(savedToken);
           setUsuario(JSON.parse(savedUser));
+          // Re-registrar el token FCM por si cambió
+          void registrarPushToken(savedToken);
         }
       } catch (err) {
         console.error('Error cargando sesión:', err);
@@ -55,6 +58,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUsuario(u);
     await AsyncStorage.setItem('vc_token', t);
     await AsyncStorage.setItem('vc_user', JSON.stringify(u));
+
+    // Pedir permisos de notificación y registrar token FCM
+    void registrarPushToken(t);
   }, []);
 
   const logout = useCallback(async () => {

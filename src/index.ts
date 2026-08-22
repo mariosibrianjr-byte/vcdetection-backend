@@ -117,6 +117,36 @@ setInterval(async () => {
 }, OFFLINE_CHECK_INTERVAL_MS);
 
 // ============================================
+// Limpieza automática de lecturas antiguas.
+// Borra lecturas con más de RETENTION_DAYS días
+// (configurable en .env, default 30). La tabla de
+// lecturas crece ~17k filas/día por sensor activo.
+// Corre una vez al arrancar y luego cada 24 horas.
+// ============================================
+const RETENTION_DAYS = Math.max(parseInt(process.env.RETENTION_DAYS || "30", 10), 1);
+const PURGE_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+async function purgarLecturasAntiguas(): Promise<void> {
+  try {
+    const limite = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    const result = await prisma.lectura.deleteMany({
+      where: { fecha: { lt: limite } },
+    });
+
+    if (result.count > 0) {
+      console.log(
+        `[PURGA] ${result.count} lectura(s) con más de ${RETENTION_DAYS} días eliminadas`
+      );
+    }
+  } catch (error) {
+    console.error("[PURGA] Error limpiando lecturas:", error);
+  }
+}
+
+void purgarLecturasAntiguas();
+setInterval(() => void purgarLecturasAntiguas(), PURGE_INTERVAL_MS);
+
+// ============================================
 // Arrancar servidor
 // ============================================
 httpServer.listen(PORT, () => {
