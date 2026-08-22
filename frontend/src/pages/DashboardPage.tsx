@@ -135,14 +135,14 @@ function SalonModal({
               <ResponsiveContainer width="100%" height={160}>
                 <LineChart data={chartData}>
                   <XAxis dataKey="i" hide />
-                  <YAxis domain={['auto', 'auto']} tick={{ fill: '#4d6380', fontSize: 11 }} width={40} />
+                  <YAxis domain={['auto', 'auto']} tick={{ fill: '#94a3b8', fontSize: 11 }} width={40} />
                   <Tooltip
-                    contentStyle={{ background: '#111827', border: '1px solid #1e2d45', borderRadius: 8, fontSize: 12 }}
+                    contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, fontSize: 12, boxShadow: '0 10px 30px -10px rgba(30,41,59,0.15)' }}
                     labelStyle={{ display: 'none' }}
                   />
-                  <Line type="monotone" dataKey="mq135" stroke="var(--blue)" strokeWidth={2} dot={false} name="MQ135 ppm" />
-                  <Line type="monotone" dataKey="mq2" stroke="var(--purple)" strokeWidth={2} dot={false} name="MQ2 ppm" />
-                  <Line type="monotone" dataKey="co2" stroke="var(--green)" strokeWidth={2} dot={false} name="CO2 ppm" yAxisId="right" />
+                  <Line type="monotone" dataKey="mq135" stroke="var(--blue)" strokeWidth={2.5} dot={false} name="MQ135 ppm" />
+                  <Line type="monotone" dataKey="mq2" stroke="var(--purple)" strokeWidth={2.5} dot={false} name="MQ2 ppm" />
+                  <Line type="monotone" dataKey="co2" stroke="var(--green)" strokeWidth={2.5} dot={false} name="CO2 ppm" yAxisId="right" />
                 </LineChart>
               </ResponsiveContainer>
 
@@ -150,12 +150,12 @@ function SalonModal({
               <ResponsiveContainer width="100%" height={120}>
                 <LineChart data={chartData}>
                   <XAxis dataKey="i" hide />
-                  <YAxis domain={['auto', 'auto']} tick={{ fill: '#4d6380', fontSize: 11 }} width={40} />
+                  <YAxis domain={['auto', 'auto']} tick={{ fill: '#94a3b8', fontSize: 11 }} width={40} />
                   <Tooltip
-                    contentStyle={{ background: '#111827', border: '1px solid #1e2d45', borderRadius: 8, fontSize: 12 }}
+                    contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, fontSize: 12, boxShadow: '0 10px 30px -10px rgba(30,41,59,0.15)' }}
                     labelStyle={{ display: 'none' }}
                   />
-                  <Line type="monotone" dataKey="hum" stroke="var(--purple)" strokeWidth={2} dot={false} name="Humedad %" />
+                  <Line type="monotone" dataKey="hum" stroke="var(--purple)" strokeWidth={2.5} dot={false} name="Humedad %" />
                 </LineChart>
               </ResponsiveContainer>
             </>

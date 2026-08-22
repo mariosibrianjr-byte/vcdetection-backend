@@ -36,7 +36,7 @@ const char* SERVER_URL = "https://vcdetection-backend.onrender.com/api/sensor/le
 // Debe coincidir con la variable DEVICE_API_KEY del .env del servidor.
 // Si no coincide, el servidor rechaza las lecturas con error 401.
 // IMPORTANTE: no subas este archivo con credenciales reales a un repo público.
-const char* DEVICE_API_KEY = "CAMBIA_ESTA_API_KEY";
+const char* DEVICE_API_KEY = "QqDVPhcdVT3sVBEuB35M6GLHyR2Z7QpfLli637wSt4";
 
 // ─── Pines ────────────────────────────────────────────────────────────────────
 const int MQ7_PIN   = 32;   // CO — diferenciador de combustión (cigarrillo)
