@@ -55,6 +55,18 @@ export default function AlertasScreen() {
     }
   };
 
+  const marcarTodas = async () => {
+    try {
+      await fetch(`${API_URL}/api/alertas/marcar-todas`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setAlertas(prev => prev.map(a => ({ ...a, vista: true })));
+    } catch (err) {
+      console.error('Error marcando alertas:', err);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchAlertas();
@@ -69,9 +81,14 @@ export default function AlertasScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Alertas</Text>
         {noVistas > 0 && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{noVistas} nuevas</Text>
-          </View>
+          <>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{noVistas} nuevas</Text>
+            </View>
+            <TouchableOpacity style={styles.marcarTodasBtn} onPress={marcarTodas}>
+              <Text style={styles.marcarTodasTexto}>Marcar todas</Text>
+            </TouchableOpacity>
+          </>
         )}
       </View>
 
@@ -131,6 +148,8 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary },
   badge: { backgroundColor: COLORS.redGlow, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 99 },
   badgeText: { color: COLORS.red, fontSize: 12, fontWeight: '700' },
+  marcarTodasBtn: { marginLeft: 'auto', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: COLORS.borderLight },
+  marcarTodasTexto: { color: COLORS.blue, fontSize: 12, fontWeight: '700' },
   // Alerta Item
   alertaItem: {
     flexDirection: 'row',

@@ -8,6 +8,7 @@ import { COLORS } from '../config';
 import DashboardScreen from '../screens/DashboardScreen';
 import DetalleSalonScreen from '../screens/DetalleSalonScreen';
 import AlertasScreen from '../screens/AlertasScreen';
+import UsuariosScreen from '../screens/UsuariosScreen';
 
 // ─── Tema oscuro para toda la navegación ──────────────────────────────────────
 const DarkTheme = {
@@ -71,6 +72,7 @@ export default function AppNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Tabs" component={TabNavigator} />
         <Stack.Screen name="Detalle" component={DetalleSalonScreen} />
+        <Stack.Screen name="Usuarios" component={UsuariosScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

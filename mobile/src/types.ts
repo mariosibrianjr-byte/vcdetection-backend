@@ -42,6 +42,17 @@ export interface Usuario {
   rol: string;
 }
 
+export interface PuntoHistorico {
+  hora: string;
+  ppm135: number;
+  ppm2: number;
+  pm25: number;
+  co2: number;
+  humedad: number;
+  temperatura: number;
+  total: number;
+}
+
 // Estado de color del salón basado en la última lectura
 export type EstadoSalon = 'verde' | 'amarillo' | 'rojo' | 'offline';
 
