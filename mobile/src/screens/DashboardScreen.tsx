@@ -3,19 +3,18 @@ import {
   View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity,
   Animated, Vibration, Dimensions
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
-import { API_URL, COLORS, FONT } from '../config';
+import { API_URL, COLORS } from '../config';
 import { Dispositivo, Lectura, Alerta, calcularEstado, EstadoSalon, tipoAlertaIcono, tipoAlertaLabel, formatTiempoRelativo } from '../types';
 
 type RootStackParamList = { Dashboard: undefined; DetalleSalon: { dispositivo: Dispositivo }; Alertas: undefined; Usuarios: undefined; };
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Dashboard'>;
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-// ─── Toast de Alerta (como la versión PC) ────────────────────────────────────
+// ─── Toast de Alerta (estilo PC: blanco con borde rojo) ──────────────────────
 function ToastAlerta({ alerta, onDismiss }: { alerta: Alerta; onDismiss: () => void }) {
   useEffect(() => {
     const t = setTimeout(onDismiss, 8000);
@@ -27,7 +26,7 @@ function ToastAlerta({ alerta, onDismiss }: { alerta: Alerta; onDismiss: () => v
     <TouchableOpacity style={styles.toast} onPress={onDismiss} activeOpacity={0.9}>
       <Text style={styles.toastIcon}>{tipoAlertaIcono(alerta.tipo)}</Text>
       <View style={{ flex: 1 }}>
-        <Text style={styles.toastTitle}>⚠️ {tipoAlertaLabel(alerta.tipo)}</Text>
+        <Text style={styles.toastTitle}>{tipoAlertaLabel(alerta.tipo)}</Text>
         <Text style={styles.toastBody}>{salon}: {alerta.mensaje.slice(0, 80)}</Text>
         <Text style={styles.toastTime}>{formatTiempoRelativo(alerta.fecha)}</Text>
       </View>
@@ -35,7 +34,7 @@ function ToastAlerta({ alerta, onDismiss }: { alerta: Alerta; onDismiss: () => v
   );
 }
 
-// ─── Card de Salón (métricas idénticas a PC: CO/PM2.5/PM10/CO₂) ──────────────
+// ─── Card de Salón (blanca con franja de color arriba, como la PC) ───────────
 function SalonCard({ disp, lectura, onPress }: { disp: Dispositivo, lectura?: Lectura, onPress: () => void }) {
   const estado = calcularEstado(disp, lectura);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -44,7 +43,7 @@ function SalonCard({ disp, lectura, onPress }: { disp: Dispositivo, lectura?: Le
     if (estado === 'rojo' || estado === 'amarillo') {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.5, duration: 1000, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1.6, duration: 1000, useNativeDriver: true }),
           Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
         ])
       ).start();
@@ -53,38 +52,65 @@ function SalonCard({ disp, lectura, onPress }: { disp: Dispositivo, lectura?: Le
     }
   }, [estado]);
 
+  // Colores de los puntos — exactos a la PC (.dot-verde/.dot-amarillo/.dot-rojo)
   const dotColors: Record<EstadoSalon, string> = {
-    verde: COLORS.green, amarillo: COLORS.yellow, rojo: COLORS.red, offline: COLORS.gray,
+    verde: COLORS.dotVerde, amarillo: COLORS.dotAmarillo, rojo: COLORS.dotRojo, offline: COLORS.dotOffline,
   };
-  const color = dotColors[estado];
+  const stripColors: Record<EstadoSalon, [string, string]> = {
+    verde: ['#34d399', '#a7f3d0'],
+    amarillo: ['#fbbf24', '#fde68a'],
+    rojo: ['#fb7185', '#fecdd3'],
+    offline: ['#cbd5e1', '#e2e8f0'],
+  };
+  const tipoStyles: Record<EstadoSalon, { bg: string; color: string }> = {
+    verde: { bg: COLORS.greenSoft, color: COLORS.green },
+    amarillo: { bg: COLORS.yellowSoft, color: COLORS.yellow },
+    rojo: { bg: COLORS.redSoft, color: COLORS.red },
+    offline: { bg: COLORS.graySoft, color: COLORS.gray },
+  };
 
   return (
-    <TouchableOpacity style={[styles.salonCard, estado !== 'offline' && { borderColor: color + '55' }]} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={[styles.salonCard, estado === 'offline' && styles.salonCardOffline]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      {/* Franja de color superior (::before en PC) */}
+      <View style={StyleSheet.absoluteFill}>
+        <LinearGradient
+          colors={stripColors[estado]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.cardStrip}
+        />
+      </View>
+
       <View style={styles.salonHeader}>
         <Text style={styles.salonTitle}>{disp.salon}</Text>
         <View style={styles.statusContainer}>
           <Animated.View style={[
             styles.statusGlow,
-            { backgroundColor: color, transform: [{ scale: pulseAnim }], opacity: 0.3 }
+            { backgroundColor: dotColors[estado], transform: [{ scale: pulseAnim }], opacity: 0.35 }
           ]} />
-          <View style={[styles.statusDot, { backgroundColor: color }]} />
+          <View style={[styles.statusDot, { backgroundColor: dotColors[estado] }]} />
         </View>
       </View>
 
-      <Text style={[styles.salonType, { color }]}>
-        {lectura ? lectura.tipo : (disp.online ? 'Sin datos' : 'Offline')}
-      </Text>
+      <View style={[styles.tipoBadge, { backgroundColor: tipoStyles[estado].bg }]}>
+        <Text style={[styles.tipoTexto, { color: tipoStyles[estado].color }]}>
+          {lectura ? lectura.tipo : (disp.online ? 'Sin datos' : 'Offline')}
+        </Text>
+      </View>
 
       <View style={styles.metricsGrid}>
-        <MetricGauge label="CO (MQ7)" value={lectura ? lectura.ppm135.toFixed(1) : '--'} unit="ppm" />
-        <MetricGauge label="PM2.5" value={lectura && lectura.pm25 >= 0 ? String(lectura.pm25) : '--'} unit="µg" isAlert={!!lectura && lectura.pm25 > 35} />
-        <MetricGauge label="PM10" value={lectura && lectura.pm10 >= 0 ? String(lectura.pm10) : '--'} unit="µg" />
-        <MetricGauge
+        <Metric label="CO (MQ7)" value={lectura ? lectura.ppm135.toFixed(1) : '--'} unit="ppm" />
+        <Metric label="PM2.5" value={lectura && lectura.pm25 >= 0 ? String(lectura.pm25) : '--'} unit="µg" valueColor={!!lectura && lectura.pm25 > 35 ? COLORS.red : undefined} />
+        <Metric label="PM10" value={lectura && lectura.pm10 >= 0 ? String(lectura.pm10) : '--'} unit="µg" />
+        <Metric
           label="CO₂"
           value={lectura && lectura.co2 >= 0 ? String(lectura.co2) : '--'}
           unit="ppm"
-          isAlert={!!lectura && lectura.co2 > 2000}
-          isWarn={!!lectura && lectura.co2 >= 1000 && lectura.co2 <= 2000}
+          valueColor={!!lectura && lectura.co2 > 2000 ? COLORS.red : !!lectura && lectura.co2 >= 1000 ? COLORS.yellow : undefined}
         />
       </View>
 
@@ -93,18 +119,17 @@ function SalonCard({ disp, lectura, onPress }: { disp: Dispositivo, lectura?: Le
   );
 }
 
-function MetricGauge({ label, value, unit, isAlert = false, isWarn = false }: { label: string; value: string | number; unit: string; isAlert?: boolean; isWarn?: boolean }) {
-  const valColor = isAlert ? COLORS.red : isWarn ? COLORS.yellow : '#fff';
+function Metric({ label, value, unit, valueColor }: { label: string; value: string | number; unit: string; valueColor?: string }) {
   return (
-    <View style={styles.metricGauge}>
+    <View style={styles.metric}>
       <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={[styles.metricValue, { color: valColor }]}>{value}</Text>
+      <Text style={[styles.metricValue, valueColor ? { color: valueColor } : null]}>{value}</Text>
       <Text style={styles.metricUnit}>{unit}</Text>
     </View>
   );
 }
 
-// ─── Dashboard Principal (layout espejo de la versión PC) ────────────────────
+// ─── Dashboard Principal (tema claro pastel) ─────────────────────────────────
 export default function DashboardScreen() {
   const { usuario, logout, token } = useAuth();
   const navigation = useNavigation<NavigationProp>();
@@ -153,7 +178,6 @@ export default function DashboardScreen() {
     fetchAlertas();
   }, [fetchData, fetchAlertas]);
 
-  // Sincronizar dispositivos actualizados por WebSocket
   useEffect(() => {
     if (!socketCtx) return;
     const devsSocket = socketCtx.dispositivoUpdates;
@@ -162,7 +186,7 @@ export default function DashboardScreen() {
     }
   }, [socketCtx?.dispositivoUpdates]);
 
-  // Lecturas en tiempo real + refresco de alertas cuando llega una nueva
+  // Alertas nuevas en tiempo real + vibración + toasts
   useEffect(() => {
     if (!socketCtx?.alertasNuevas.length) return;
     const nuevas = socketCtx.alertasNuevas;
@@ -201,10 +225,17 @@ export default function DashboardScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Barra superior como la navbar de PC */}
+      {/* Navbar blanca translúcida como la PC */}
       <View style={styles.navbar}>
         <View style={styles.navbarLeft}>
-          <View style={styles.navbarLogo}><Text style={{ fontSize: 22 }}>🔍</Text></View>
+          <LinearGradient
+            colors={COLORS.gradPrimary as unknown as [string, string, ...string[]]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.navbarLogo}
+          >
+            <Text style={{ fontSize: 15 }}>🔍</Text>
+          </LinearGradient>
           <View>
             <Text style={styles.navbarTitle}>VCDetection</Text>
             <Text style={styles.navbarSubtitle}>Panel de Control Encubierto</Text>
@@ -261,8 +292,8 @@ export default function DashboardScreen() {
               Últimas alertas{alertasNoVistas > 0 ? ` (${alertasNoVistas} nuevas)` : ''}
             </Text>
             {alertasNoVistas > 0 && (
-              <TouchableOpacity onPress={marcarTodas}>
-                <Text style={styles.marcarTodasBtn}>Marcar todas como vistas</Text>
+              <TouchableOpacity style={styles.marcarTodasBtn} onPress={marcarTodas}>
+                <Text style={styles.marcarTodasTexto}>Marcar todas</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -276,6 +307,9 @@ export default function DashboardScreen() {
 
           {alertas.slice(0, 15).map(alerta => {
             const salon = alerta.dispositivo?.salon || alerta.dispositivoId;
+            const iconoBg =
+              alerta.tipo === 'VAPE_CONFIRMADO' ? COLORS.yellowSoft :
+              alerta.tipo === 'PM25_ALTO' ? COLORS.purpleSoft : COLORS.redSoft;
             return (
               <TouchableOpacity
                 key={alerta.id}
@@ -283,12 +317,12 @@ export default function DashboardScreen() {
                 onPress={() => !alerta.vista && marcarVista(alerta.id)}
                 activeOpacity={0.7}
               >
-                <View style={styles.alertaIcono}>
-                  <Text style={{ fontSize: 18 }}>{tipoAlertaIcono(alerta.tipo)}</Text>
+                <View style={[styles.alertaIcono, { backgroundColor: iconoBg }]}>
+                  <Text style={{ fontSize: 17 }}>{tipoAlertaIcono(alerta.tipo)}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.alertaSalon}>{salon}</Text>
-                  <Text style={styles.alertaMsg}>{alerta.mensaje}</Text>
+                  <Text style={styles.alertaMsg} numberOfLines={1}>{alerta.mensaje}</Text>
                   <Text style={styles.alertaTime}>{formatTiempoRelativo(alerta.fecha)}</Text>
                 </View>
                 {!alerta.vista && <View style={styles.dotNueva} />}
@@ -298,7 +332,7 @@ export default function DashboardScreen() {
         </View>
       </ScrollView>
 
-      {/* Toasts flotantes arriba */}
+      {/* Toasts flotantes */}
       <View style={styles.toastContainer} pointerEvents="box-none">
         {toasts.map(t => (
           <ToastAlerta key={t.id} alerta={t} onDismiss={() => setToasts(prev => prev.filter(x => x.id !== t.id))} />
@@ -322,7 +356,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.bg,
   },
-  // ── Navbar
+  // ── Navbar (blanca translúcida como .navbar en PC)
   navbar: {
     paddingTop: 54,
     paddingHorizontal: 16,
@@ -330,122 +364,168 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(17, 24, 39, 0.8)',
+    backgroundColor: 'rgba(255,255,255,0.9)',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: COLORS.border,
   },
   navbarLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   navbarLogo: {
-    width: 38, height: 38, borderRadius: 10,
-    backgroundColor: COLORS.blueGlow,
-    borderWidth: 1, borderColor: COLORS.borderLight,
+    width: 34, height: 34, borderRadius: 10,
     justifyContent: 'center', alignItems: 'center',
   },
-  navbarTitle: { fontSize: 17, fontFamily: FONT.bold, color: '#fff' },
-  navbarSubtitle: { fontSize: 11, fontFamily: FONT.regular, color: COLORS.blue },
+  navbarTitle: { fontSize: 16, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.2 },
+  navbarSubtitle: { fontSize: 11, color: COLORS.textMuted },
   navbarRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   btnNav: {
-    backgroundColor: COLORS.blueGlow,
-    borderWidth: 1, borderColor: COLORS.borderLight,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+    backgroundColor: COLORS.purpleSoft,
+    borderWidth: 1.5,
+    borderColor: 'rgba(139,92,246,0.25)',
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
   },
-  btnNavText: { color: COLORS.blue, fontSize: 12, fontWeight: '700' },
+  btnNavText: { color: '#7c3aed', fontSize: 12.5, fontWeight: '600' },
   btnLogout: {
-    backgroundColor: COLORS.redGlow,
-    borderWidth: 1, borderColor: 'rgba(244,63,94,0.4)',
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: COLORS.borderLight,
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
   },
-  btnLogoutText: { color: COLORS.red, fontSize: 12, fontWeight: '700' },
-  // ── Stats
+  btnLogoutText: { color: COLORS.textSecondary, fontSize: 12.5, fontWeight: '600' },
+  // ── Stats (tarjetas blancas con sombra suave)
   scrollContent: { padding: 16, paddingBottom: 40 },
-  statsBar: { gap: 10, paddingRight: 16 },
+  statsBar: { gap: 12, paddingRight: 16 },
   statCard: {
-    backgroundColor: 'rgba(17, 24, 39, 0.6)',
+    backgroundColor: COLORS.card,
     borderRadius: 14,
-    paddingVertical: 12, paddingHorizontal: 16,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
-    minWidth: 110,
+    paddingVertical: 14, paddingHorizontal: 18,
+    borderWidth: 1, borderColor: COLORS.border,
+    minWidth: 120,
+    shadowColor: '#1e293b',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.06,
+    shadowRadius: 24,
+    elevation: 2,
   },
-  statLabel: { fontSize: 11, color: COLORS.textSecondary, fontWeight: '600' },
-  statValue: { fontSize: 24, fontWeight: '800', marginTop: 2 },
+  statLabel: {
+    fontSize: 10, color: COLORS.textMuted,
+    fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.7,
+  },
+  statValue: { fontSize: 26, fontWeight: '800', marginTop: 4, letterSpacing: -0.5 },
   // ── Secciones
   sectionTitle: {
-    fontSize: 14, fontWeight: '800', color: COLORS.textPrimary,
-    marginTop: 18, marginBottom: 10,
+    fontSize: 13, fontWeight: '700', color: COLORS.textSecondary,
+    textTransform: 'uppercase', letterSpacing: 0.8,
+    marginTop: 20, marginBottom: 12,
   },
   vacioTexto: { color: COLORS.textMuted, textAlign: 'center', marginTop: 20, paddingHorizontal: 20 },
   salonesGrid: { gap: 14 },
-  // ── Salon Card
+  // ── Salon Card (blanca, franja superior, sombra)
   salonCard: {
-    backgroundColor: 'rgba(17, 24, 39, 0.6)',
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: COLORS.card,
+    borderRadius: 18,
+    paddingTop: 20, paddingHorizontal: 20, paddingBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+    shadowColor: '#1e293b',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.06,
+    shadowRadius: 32,
+    elevation: 2,
   },
+  salonCardOffline: { opacity: 0.62 },
+  cardStrip: { height: 3, width: '100%' },
   salonHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 12,
   },
-  salonTitle: { fontSize: 18, fontFamily: FONT.bold, color: '#fff' },
-  statusContainer: { position: 'relative', width: 24, height: 24, justifyContent: 'center', alignItems: 'center' },
-  statusGlow: { position: 'absolute', width: 24, height: 24, borderRadius: 12 },
+  salonTitle: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, letterSpacing: -0.1 },
+  statusContainer: { position: 'relative', width: 22, height: 22, justifyContent: 'center', alignItems: 'center' },
+  statusGlow: { position: 'absolute', width: 18, height: 18, borderRadius: 9 },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
-  salonType: { fontSize: 13, fontFamily: FONT.bold, marginTop: 4, marginBottom: 14 },
+  tipoBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12, paddingVertical: 4,
+    borderRadius: 999,
+    marginBottom: 12,
+  },
+  tipoTexto: { fontSize: 12, fontWeight: '600' },
   metricsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: 12,
-    padding: 12,
+    flexWrap: 'wrap',
+    gap: 10,
   },
-  metricGauge: { alignItems: 'center', flex: 1 },
-  metricLabel: { fontSize: 9, color: COLORS.textSecondary, marginBottom: 4 },
-  metricValue: { fontSize: 15, fontFamily: FONT.bold, fontVariant: ['tabular-nums'] },
-  metricUnit: { fontSize: 9, color: COLORS.textMuted, marginTop: 2 },
-  salonTiempo: { fontSize: 11, color: COLORS.textMuted, marginTop: 10 },
-  // ── Panel de alertas
+  metric: { width: '47%', flexGrow: 1, gap: 1 },
+  metricLabel: {
+    fontSize: 10, color: COLORS.textMuted,
+    textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: '600',
+  },
+  metricValue: {
+    fontSize: 17, fontWeight: '700',
+    color: COLORS.textPrimary,
+    fontVariant: ['tabular-nums'],
+  },
+  metricUnit: { fontSize: 10, color: COLORS.textMuted },
+  salonTiempo: {
+    fontSize: 11, color: COLORS.textMuted,
+    marginTop: 12, fontVariant: ['tabular-nums'],
+  },
+  // ── Panel de alertas (blanco, header gris suave)
   alertasPanel: {
-    backgroundColor: 'rgba(17, 24, 39, 0.6)',
-    borderRadius: 16,
+    backgroundColor: COLORS.card,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: COLORS.border,
     overflow: 'hidden',
+    shadowColor: '#1e293b',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.06,
+    shadowRadius: 32,
+    elevation: 2,
   },
   alertasHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: COLORS.bgSecondary,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
+    borderBottomColor: COLORS.border,
   },
-  alertasTitulo: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary },
-  marcarTodasBtn: { fontSize: 11, fontWeight: '700', color: COLORS.blue },
-  alertasEmpty: { alignItems: 'center', padding: 28, gap: 6 },
-  alertasEmptyTexto: { color: COLORS.textSecondary, fontSize: 13, fontWeight: '600' },
+  alertasTitulo: { fontSize: 13.5, fontWeight: '700', color: COLORS.textPrimary },
+  marcarTodasBtn: {
+    backgroundColor: COLORS.card,
+    borderWidth: 1.5,
+    borderColor: COLORS.borderLight,
+    paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999,
+  },
+  marcarTodasTexto: { color: COLORS.textSecondary, fontSize: 11.5, fontWeight: '600' },
+  alertasEmpty: { alignItems: 'center', padding: 36, gap: 6 },
+  alertasEmptyTexto: { color: COLORS.textMuted, fontSize: 13.5 },
   alertaItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    gap: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.04)',
+    borderBottomColor: COLORS.border,
   },
-  alertaNoVista: { backgroundColor: 'rgba(244,63,94,0.05)' },
+  alertaNoVista: { backgroundColor: COLORS.redSoft },
   alertaIcono: {
-    width: 34, height: 34, borderRadius: 9,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    width: 38, height: 38, borderRadius: 12,
     justifyContent: 'center', alignItems: 'center',
   },
   alertaSalon: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary },
-  alertaMsg: { fontSize: 11.5, color: COLORS.textSecondary, marginTop: 2 },
-  alertaTime: { fontSize: 10, color: COLORS.textMuted, marginTop: 3 },
+  alertaMsg: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+  alertaTime: {
+    fontSize: 11, color: COLORS.textMuted,
+    marginTop: 2, fontVariant: ['tabular-nums'],
+  },
   dotNueva: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.red, marginTop: 6 },
-  // ── Toasts
+  // ── Toasts (blancos con borde rojo, como PC)
   toastContainer: {
     position: 'absolute',
     top: 100,
@@ -454,19 +534,20 @@ const styles = StyleSheet.create({
   },
   toast: {
     flexDirection: 'row',
-    gap: 10,
-    backgroundColor: COLORS.bgElevated,
+    gap: 12,
+    backgroundColor: 'rgba(255,255,255,0.97)',
     borderRadius: 14,
-    padding: 12,
+    padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.yellow,
-    shadowColor: '#000',
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
+    borderColor: 'rgba(244,63,94,0.28)',
+    shadowColor: '#1e293b',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.14,
+    shadowRadius: 44,
     elevation: 8,
   },
-  toastIcon: { fontSize: 24 },
-  toastTitle: { fontSize: 12.5, fontWeight: '800', color: COLORS.yellow },
-  toastBody: { fontSize: 11.5, color: COLORS.textSecondary, marginTop: 2 },
-  toastTime: { fontSize: 10, color: COLORS.textMuted, marginTop: 2 },
+  toastIcon: { fontSize: 22 },
+  toastTitle: { fontSize: 13.5, fontWeight: '800', color: COLORS.red },
+  toastBody: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+  toastTime: { fontSize: 11, color: COLORS.textMuted, marginTop: 3 },
 });

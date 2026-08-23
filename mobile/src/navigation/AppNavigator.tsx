@@ -10,14 +10,14 @@ import DetalleSalonScreen from '../screens/DetalleSalonScreen';
 import AlertasScreen from '../screens/AlertasScreen';
 import UsuariosScreen from '../screens/UsuariosScreen';
 
-// ─── Tema oscuro para toda la navegación ──────────────────────────────────────
-const DarkTheme = {
+// ─── Tema claro pastel para toda la navegación ───────────────────────────────
+const LightTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
     primary: COLORS.blue,
     background: COLORS.bg,
-    card: COLORS.bgCard,
+    card: COLORS.card,
     text: COLORS.textPrimary,
     border: COLORS.border,
     notification: COLORS.red,
@@ -33,7 +33,7 @@ function TabNavigator() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: COLORS.bgCard,
+          backgroundColor: COLORS.card,
           borderTopColor: COLORS.border,
           borderTopWidth: 1,
           height: 60,
@@ -68,7 +68,7 @@ const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   return (
-    <NavigationContainer theme={DarkTheme}>
+    <NavigationContainer theme={LightTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Tabs" component={TabNavigator} />
         <Stack.Screen name="Detalle" component={DetalleSalonScreen} />

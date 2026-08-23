@@ -75,6 +75,11 @@ export default function AlertasScreen() {
 
   const noVistas = alertas.filter(a => !a.vista).length;
 
+  // Fondo pastel del icono según tipo (icono-vape/icono-cig/icono-alta/icono-pm de PC)
+  const iconoBg = (tipo: string) =>
+    tipo === 'VAPE_CONFIRMADO' ? COLORS.yellowSoft :
+    tipo === 'PM25_ALTO' ? COLORS.purpleSoft : COLORS.redSoft;
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -114,12 +119,16 @@ export default function AlertasScreen() {
               onPress={() => !item.vista && marcarVista(item.id)}
               activeOpacity={0.7}
             >
-              <View style={styles.alertaIcono}>
-                <Text style={{ fontSize: 20 }}>{tipoAlertaIcono(item.tipo)}</Text>
+              <View style={[styles.alertaIcono, { backgroundColor: iconoBg(item.tipo) }]}>
+                <Text style={{ fontSize: 17 }}>{tipoAlertaIcono(item.tipo)}</Text>
               </View>
               <View style={styles.alertaInfo}>
-                <Text style={styles.alertaSalon}>{salon}</Text>
-                <Text style={styles.alertaTipo}>{tipoAlertaLabel(item.tipo)}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={styles.alertaSalon}>{salon}</Text>
+                  <View style={styles.tipoPill}>
+                    <Text style={styles.tipoPillTexto}>{tipoAlertaLabel(item.tipo)}</Text>
+                  </View>
+                </View>
                 <Text style={styles.alertaMsg} numberOfLines={2}>{item.mensaje}</Text>
                 <Text style={styles.alertaTime}>{formatTiempoRelativo(item.fecha)}</Text>
               </View>
@@ -137,48 +146,72 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     paddingTop: 54,
     paddingHorizontal: 20,
-    paddingBottom: 16,
-    backgroundColor: COLORS.bgCard,
+    paddingBottom: 14,
+    backgroundColor: 'rgba(255,255,255,0.9)',
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary },
-  badge: { backgroundColor: COLORS.redGlow, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 99 },
-  badgeText: { color: COLORS.red, fontSize: 12, fontWeight: '700' },
-  marcarTodasBtn: { marginLeft: 'auto', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: COLORS.borderLight },
-  marcarTodasTexto: { color: COLORS.blue, fontSize: 12, fontWeight: '700' },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
+  badge: {
+    backgroundColor: COLORS.redSoft,
+    borderWidth: 1,
+    borderColor: 'rgba(244,63,94,0.25)',
+    paddingHorizontal: 12, paddingVertical: 3, borderRadius: 999,
+  },
+  badgeText: { color: COLORS.red, fontSize: 11, fontWeight: '700' },
+  marcarTodasBtn: {
+    marginLeft: 'auto',
+    backgroundColor: COLORS.card,
+    paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1.5, borderColor: COLORS.borderLight,
+  },
+  marcarTodasTexto: { color: COLORS.textSecondary, fontSize: 12, fontWeight: '600' },
   // Alerta Item
   alertaItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  alertaNoVista: { backgroundColor: 'rgba(239,68,68,0.04)' },
-  alertaIcono: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: COLORS.bgCard,
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginHorizontal: 12,
+    marginTop: 8,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    backgroundColor: COLORS.card,
     borderWidth: 1,
     borderColor: COLORS.border,
+    borderRadius: 14,
+    shadowColor: '#1e293b',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 1,
+  },
+  alertaNoVista: { backgroundColor: COLORS.redSoft, borderColor: 'rgba(244,63,94,0.15)' },
+  alertaIcono: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   alertaInfo: { flex: 1 },
-  alertaSalon: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
-  alertaTipo: { fontSize: 12, fontWeight: '600', color: COLORS.red, marginTop: 1 },
-  alertaMsg: { fontSize: 12, color: COLORS.textSecondary, marginTop: 4, lineHeight: 18 },
-  alertaTime: { fontSize: 11, color: COLORS.textMuted, marginTop: 4, fontVariant: ['tabular-nums'] },
+  alertaSalon: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary },
+  tipoPill: {
+    backgroundColor: COLORS.bgSecondary,
+    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 99,
+  },
+  tipoPillTexto: { fontSize: 9.5, fontWeight: '700', color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.3 },
+  alertaMsg: { fontSize: 12, color: COLORS.textSecondary, marginTop: 4, lineHeight: 17 },
+  alertaTime: {
+    fontSize: 11, color: COLORS.textMuted, marginTop: 4,
+    fontVariant: ['tabular-nums'],
+  },
   dotNueva: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.red, marginTop: 6 },
   // Empty
   emptyBox: { padding: 60, alignItems: 'center' },
-  emptyText: { color: COLORS.textSecondary, fontSize: 16, fontWeight: '600' },
+  emptyText: { color: COLORS.textSecondary, fontSize: 15, fontWeight: '600' },
   emptySub: { color: COLORS.textMuted, fontSize: 13, marginTop: 4 },
 });

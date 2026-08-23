@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Animated, Easing, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Animated, Easing, KeyboardAvoidingView, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import { COLORS, FONT } from '../config';
-
-const { width, height } = Dimensions.get('window');
 
 export default function LoginScreen() {
   const { login, loading } = useAuth();
@@ -20,12 +19,12 @@ export default function LoginScreen() {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 1000,
+        duration: 700,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 800,
+        duration: 600,
         easing: Easing.out(Easing.exp),
         useNativeDriver: true,
       }),
@@ -36,7 +35,7 @@ export default function LoginScreen() {
     if (!email || !password) return;
     setError('');
     Animated.sequence([
-      Animated.timing(scaleAnim, { toValue: 0.95, duration: 100, useNativeDriver: true }),
+      Animated.timing(scaleAnim, { toValue: 0.97, duration: 100, useNativeDriver: true }),
       Animated.timing(scaleAnim, { toValue: 1, duration: 100, useNativeDriver: true })
     ]).start(async () => {
       try {
@@ -49,27 +48,43 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Fondo decorativo (simulando gradiente radial) */}
-      <View style={styles.glowTop} />
-      <View style={styles.glowBottom} />
+      {/* Círculos decorativos pastel (como el ::before/::after del login de PC) */}
+      <View style={[styles.decoCircle, styles.glowTop]} />
+      <View style={[styles.decoCircle, styles.glowBottom]} />
 
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.content}
       >
+        {/* Encabezado */}
         <Animated.View style={[styles.headerContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-          <Text style={styles.logoIcon}>🔍</Text>
-          <Text style={styles.title}>VCDetection</Text>
-          <Text style={styles.subtitle}>Panel de Control Premium</Text>
+          <View style={styles.headerRow}>
+            <LinearGradient
+              colors={COLORS.gradPrimary as unknown as [string, string, ...string[]]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.logoIcon}
+            >
+              <Text style={{ fontSize: 21 }}>🔍</Text>
+            </LinearGradient>
+            <View>
+              <Text style={styles.title}>VCDetection</Text>
+              <Text style={styles.brandSubtitle}>Panel de Control Encubierto</Text>
+            </View>
+          </View>
+
+          <Text style={styles.heading}>Bienvenido de nuevo</Text>
+          <Text style={styles.subheading}>Inicia sesión para monitorear los salones</Text>
         </Animated.View>
 
+        {/* Tarjeta de login */}
         <Animated.View style={[styles.card, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>CORREO ELECTRÓNICO</Text>
+            <Text style={styles.label}>Correo electrónico</Text>
             <TextInput
               style={styles.input}
-              placeholder="admin@vcdetection.com"
-              placeholderTextColor={COLORS.textMuted}
+              placeholder="usuario@colegio.edu"
+              placeholderTextColor="#b6c0d4"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -79,11 +94,11 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>CONTRASEÑA</Text>
+            <Text style={styles.label}>Contraseña</Text>
             <TextInput
               style={styles.input}
               placeholder="••••••••"
-              placeholderTextColor={COLORS.textMuted}
+              placeholderTextColor="#b6c0d4"
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -97,23 +112,30 @@ export default function LoginScreen() {
           ) : null}
 
           <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-            <TouchableOpacity 
-              style={[styles.button, (!email || !password || loading) && styles.buttonDisabled]} 
+            <TouchableOpacity
               onPress={handleLogin}
               disabled={!email || !password || loading}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
+              style={[(!email || !password || loading) && { opacity: 0.55 }]}
             >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>INGRESAR AL SISTEMA</Text>
-              )}
+              <LinearGradient
+                colors={COLORS.gradPrimary as unknown as [string, string, ...string[]]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.button}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Iniciar sesión</Text>
+                )}
+              </LinearGradient>
             </TouchableOpacity>
           </Animated.View>
         </Animated.View>
 
         <Animated.Text style={[styles.footerText, { opacity: fadeAnim }]}>
-          Monitoreo de Calidad de Aire e IoT v2.0
+          Monitoreo de Calidad de Aire · VCDetection v1.0
         </Animated.Text>
       </KeyboardAvoidingView>
     </View>
@@ -126,25 +148,24 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bg,
     position: 'relative',
   },
-  glowTop: {
+  decoCircle: {
     position: 'absolute',
-    top: -100,
-    left: -50,
-    width: width * 0.8,
-    height: width * 0.8,
-    borderRadius: width * 0.4,
-    backgroundColor: COLORS.blueGlow,
-    opacity: 0.6,
+    borderRadius: 999,
+    opacity: 0.5,
+  },
+  glowTop: {
+    top: -120,
+    left: -100,
+    width: 380,
+    height: 380,
+    backgroundColor: '#ddd6fe',
   },
   glowBottom: {
-    position: 'absolute',
-    bottom: -100,
-    right: -50,
-    width: width * 0.8,
-    height: width * 0.8,
-    borderRadius: width * 0.4,
-    backgroundColor: COLORS.purple,
-    opacity: 0.15,
+    bottom: -160,
+    right: -120,
+    width: 420,
+    height: 420,
+    backgroundColor: '#d1fae5',
   },
   content: {
     flex: 1,
@@ -153,97 +174,103 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   headerContainer: {
+    alignItems: 'flex-start',
+    marginBottom: 28,
+  },
+  headerRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 40,
+    gap: 12,
+    marginBottom: 32,
   },
   logoIcon: {
-    fontSize: 50,
-    marginBottom: 10,
-    textShadowColor: COLORS.blue,
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 15,
+    width: 46,
+    height: 46,
+    borderRadius: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
     fontFamily: FONT.bold,
-    fontSize: 32,
-    color: '#ffffff',
-    letterSpacing: 1.5,
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+    letterSpacing: -0.3,
   },
-  subtitle: {
-    fontFamily: FONT.regular,
-    fontSize: 16,
-    color: COLORS.blue,
-    marginTop: 5,
-    letterSpacing: 0.5,
+  brandSubtitle: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+  heading: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+    letterSpacing: -0.4,
+  },
+  subheading: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginTop: 4,
   },
   card: {
-    backgroundColor: 'rgba(17, 24, 39, 0.7)',
-    borderRadius: 20,
-    padding: 24,
+    backgroundColor: COLORS.card,
+    borderRadius: 26,
+    padding: 28,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
+    borderColor: COLORS.border,
+    shadowColor: '#1e293b',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.10,
+    shadowRadius: 44,
+    elevation: 8,
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 18,
   },
   label: {
-    fontFamily: FONT.bold,
-    fontSize: 11,
+    fontSize: 13,
+    fontWeight: '600',
     color: COLORS.textSecondary,
-    letterSpacing: 1,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: COLORS.bgSecondary,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
     color: COLORS.textPrimary,
-    fontFamily: FONT.regular,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    fontSize: 14,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
   },
   errorContainer: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: COLORS.redSoft,
     padding: 12,
-    borderRadius: 8,
-    marginBottom: 20,
+    borderRadius: 10,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: 'rgba(244,63,94,0.22)',
   },
   errorText: {
     color: COLORS.red,
     fontSize: 13,
-    fontFamily: FONT.regular,
     textAlign: 'center',
   },
   button: {
-    backgroundColor: COLORS.blue,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 10,
+    paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 10,
-    shadowColor: COLORS.blue,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  buttonDisabled: {
-    backgroundColor: '#1e2d45',
-    shadowOpacity: 0,
-    elevation: 0,
+    marginTop: 8,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 6,
   },
   buttonText: {
     color: '#ffffff',
-    fontFamily: FONT.bold,
-    fontSize: 14,
-    letterSpacing: 1,
+    fontWeight: '700',
+    fontSize: 15,
   },
   footerText: {
     position: 'absolute',
@@ -251,7 +278,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     color: COLORS.textMuted,
     fontSize: 12,
-    fontFamily: FONT.regular,
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
 });

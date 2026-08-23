@@ -3,11 +3,12 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
   Alert, ActivityIndicator
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import { API_URL, COLORS } from '../config';
 import type { Usuario } from '../types';
 
-// ─── Gestión de Usuarios (solo ADMIN — espejo del modal de PC) ───────────────
+// ─── Gestión de Usuarios (solo ADMIN — tema claro pastel como PC) ────────────
 export default function UsuariosScreen({ navigation }: any) {
   const { token } = useAuth();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -111,12 +112,12 @@ export default function UsuariosScreen({ navigation }: any) {
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {error !== '' && (
-          <View style={[styles.msgBox, { borderColor: COLORS.red, backgroundColor: COLORS.redGlow }]}>
+          <View style={[styles.msgBox, { borderColor: 'rgba(244,63,94,0.22)', backgroundColor: COLORS.redSoft }]}>
             <Text style={[styles.msgTexto, { color: COLORS.red }]}>{error}</Text>
           </View>
         )}
         {ok !== '' && (
-          <View style={[styles.msgBox, { borderColor: COLORS.green, backgroundColor: COLORS.greenGlow }]}>
+          <View style={[styles.msgBox, { borderColor: 'rgba(16,185,129,0.25)', backgroundColor: COLORS.greenSoft }]}>
             <Text style={[styles.msgTexto, { color: COLORS.green }]}>{ok}</Text>
           </View>
         )}
@@ -131,7 +132,7 @@ export default function UsuariosScreen({ navigation }: any) {
                 value={form.nombre}
                 onChangeText={v => setForm({ ...form, nombre: v })}
                 placeholder="María Pérez"
-                placeholderTextColor={COLORS.textMuted}
+                placeholderTextColor="#b6c0d4"
                 maxLength={60}
               />
             </View>
@@ -159,7 +160,7 @@ export default function UsuariosScreen({ navigation }: any) {
             value={form.email}
             onChangeText={v => setForm({ ...form, email: v })}
             placeholder="usuario@colegio.edu"
-            placeholderTextColor={COLORS.textMuted}
+            placeholderTextColor="#b6c0d4"
             autoCapitalize="none"
             keyboardType="email-address"
           />
@@ -170,14 +171,21 @@ export default function UsuariosScreen({ navigation }: any) {
             value={form.password}
             onChangeText={v => setForm({ ...form, password: v })}
             placeholder="Mínimo 8 caracteres"
-            placeholderTextColor={COLORS.textMuted}
+            placeholderTextColor="#b6c0d4"
             secureTextEntry
           />
 
-          <TouchableOpacity style={[styles.btnCrear, creando && { opacity: 0.6 }]} onPress={crear} disabled={creando}>
-            {creando
-              ? <ActivityIndicator size="small" color="#fff" />
-              : <Text style={styles.btnCrearTexto}>+ Crear usuario</Text>}
+          <TouchableOpacity onPress={crear} disabled={creando} activeOpacity={0.85} style={[styles.btnCrearWrapper, creando && { opacity: 0.55 }]}>
+            <LinearGradient
+              colors={COLORS.gradPrimary as unknown as [string, string, ...string[]]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.btnCrear}
+            >
+              {creando
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Text style={styles.btnCrearTexto}>+ Crear usuario</Text>}
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
@@ -186,23 +194,28 @@ export default function UsuariosScreen({ navigation }: any) {
         {cargando ? (
           <ActivityIndicator color={COLORS.blue} style={{ marginTop: 20 }} />
         ) : (
-          <View style={styles.listaCard}>
+          <View style={{ gap: 8 }}>
             {usuarios.map(u => (
               <View key={u.id} style={styles.usuarioItem}>
-                <View style={styles.avatar}>
+                <LinearGradient
+                  colors={COLORS.gradPrimary as unknown as [string, string, ...string[]]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.avatar}
+                >
                   <Text style={styles.avatarTexto}>{u.nombre.charAt(0).toUpperCase()}</Text>
-                </View>
+                </LinearGradient>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.usuarioNombre}>{u.nombre}</Text>
                   <Text style={styles.usuarioEmail}>{u.email}</Text>
                 </View>
                 <View style={[styles.rolBadge, u.rol === 'ADMIN' ? styles.rolAdmin : styles.rolCoord]}>
-                  <Text style={[styles.rolBadgeTexto, { color: u.rol === 'ADMIN' ? COLORS.yellow : COLORS.blue }]}>
-                    {u.rol === 'ADMIN' ? 'Administrador' : 'Coordinador'}
+                  <Text style={[styles.rolBadgeTexto, { color: u.rol === 'ADMIN' ? '#7c3aed' : '#0369a1' }]}>
+                    {u.rol === 'ADMIN' ? 'Admin' : 'Coord.'}
                   </Text>
                 </View>
                 <TouchableOpacity style={styles.btnBorrar} onPress={() => eliminar(u)}>
-                  <Text style={{ fontSize: 15 }}>🗑</Text>
+                  <Text style={{ fontSize: 13 }}>🗑</Text>
                 </TouchableOpacity>
               </View>
             ))}
@@ -217,76 +230,83 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   header: {
     paddingTop: 50, paddingHorizontal: 20, paddingBottom: 14,
-    backgroundColor: COLORS.bgCard, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.card, borderBottomWidth: 1, borderBottomColor: COLORS.border,
     gap: 8,
   },
-  backText: { color: COLORS.blue, fontSize: 14, fontWeight: '600' },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary },
-  // Mensajes
+  backText: { color: COLORS.textSecondary, fontSize: 14, fontWeight: '600' },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.3 },
+  // Mensajes (.login-error / .msg-ok de PC)
   msgBox: { borderWidth: 1, borderRadius: 10, padding: 12, marginBottom: 12 },
   msgTexto: { fontSize: 13, fontWeight: '600' },
-  // Formulario
+  // Formulario (tarjeta blanca)
   formCard: {
-    backgroundColor: COLORS.bgCard,
-    borderRadius: 16, padding: 16,
+    backgroundColor: COLORS.card,
+    borderRadius: 18, padding: 18,
     borderWidth: 1, borderColor: COLORS.border,
-    gap: 6,
+    shadowColor: '#1e293b',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 32,
+    elevation: 2,
   },
   formRow: { flexDirection: 'row', gap: 12 },
-  label: { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary, marginBottom: 5, marginTop: 8 },
+  label: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 7, marginTop: 10 },
   input: {
-    backgroundColor: COLORS.bgInput,
-    borderWidth: 1, borderColor: COLORS.border,
-    borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9,
+    backgroundColor: COLORS.bgSecondary,
+    borderWidth: 1.5, borderColor: COLORS.border,
+    borderRadius: 10, paddingHorizontal: 16, paddingVertical: 13,
     color: COLORS.textPrimary, fontSize: 14,
   },
   rolSelector: { flexDirection: 'row', gap: 6 },
   rolOpcion: {
-    flex: 1, paddingVertical: 9, borderRadius: 10,
-    borderWidth: 1, borderColor: COLORS.border,
-    alignItems: 'center', backgroundColor: COLORS.bgInput,
+    flex: 1, paddingVertical: 12, borderRadius: 10,
+    borderWidth: 1.5, borderColor: COLORS.border,
+    alignItems: 'center', backgroundColor: COLORS.bgSecondary,
   },
-  rolOpcionActiva: { borderColor: COLORS.blue, backgroundColor: COLORS.blueGlow },
-  rolTexto: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary },
-  rolTextoActivo: { color: COLORS.blue },
+  rolOpcionActiva: { borderColor: '#a5b8fc', backgroundColor: COLORS.purpleSoft },
+  rolTexto: { fontSize: 12.5, fontWeight: '600', color: COLORS.textSecondary },
+  rolTextoActivo: { color: COLORS.indigo },
+  btnCrearWrapper: { marginTop: 16 },
   btnCrear: {
-    backgroundColor: COLORS.blue,
-    borderRadius: 10, paddingVertical: 13,
-    alignItems: 'center', marginTop: 14,
+    borderRadius: 10, paddingVertical: 14,
+    alignItems: 'center',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 6,
   },
-  btnCrearTexto: { color: '#fff', fontSize: 14, fontWeight: '800' },
-  // Lista
-  sectionTitle: { fontSize: 13, fontWeight: '800', color: COLORS.textPrimary, marginTop: 22, marginBottom: 10 },
-  listaCard: {
-    backgroundColor: COLORS.bgCard,
-    borderRadius: 16,
-    borderWidth: 1, borderColor: COLORS.border,
-    overflow: 'hidden',
+  btnCrearTexto: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  // Lista (.usuario-item de PC: fondo gris suave)
+  sectionTitle: {
+    fontSize: 13, fontWeight: '700', color: COLORS.textSecondary,
+    textTransform: 'uppercase', letterSpacing: 0.8,
+    marginTop: 24, marginBottom: 10,
   },
   usuarioItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: 12, paddingHorizontal: 14,
-    borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 12, paddingHorizontal: 16,
+    backgroundColor: COLORS.bgSecondary,
+    borderWidth: 1, borderColor: COLORS.border,
+    borderRadius: 14,
   },
   avatar: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: COLORS.blueGlow,
+    width: 40, height: 40, borderRadius: 20,
     justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: COLORS.borderLight,
   },
-  avatarTexto: { color: COLORS.blue, fontWeight: '800', fontSize: 15 },
-  usuarioNombre: { fontSize: 13.5, fontWeight: '700', color: COLORS.textPrimary },
-  usuarioEmail: { fontSize: 11.5, color: COLORS.textMuted, marginTop: 1 },
+  avatarTexto: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  usuarioNombre: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+  usuarioEmail: { fontSize: 12, color: COLORS.textSecondary },
   rolBadge: {
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 99,
-    borderWidth: 1,
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
   },
-  rolAdmin: { borderColor: 'rgba(245,158,11,0.4)', backgroundColor: COLORS.amberGlow },
-  rolCoord: { borderColor: 'rgba(59,130,246,0.4)', backgroundColor: COLORS.blueGlow },
-  rolBadgeTexto: { fontSize: 10, fontWeight: '700' },
+  rolAdmin: { backgroundColor: COLORS.purpleSoft },
+  rolCoord: { backgroundColor: COLORS.blueSoft },
+  rolBadgeTexto: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
   btnBorrar: {
-    width: 32, height: 32, borderRadius: 8,
-    backgroundColor: COLORS.redGlow,
+    width: 30, height: 30, borderRadius: 9,
+    backgroundColor: COLORS.redSoft,
     justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(244,63,94,0.22)',
   },
 });

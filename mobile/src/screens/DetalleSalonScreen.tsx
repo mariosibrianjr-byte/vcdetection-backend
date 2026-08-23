@@ -48,7 +48,7 @@ function LineChartMulti({ series }: { series: Serie[] }) {
         <Line x1="0" y1={paddingY} x2={width} y2={paddingY} stroke={COLORS.borderLight} strokeWidth="0.5" strokeDasharray="3,3" />
         <Line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke={COLORS.borderLight} strokeWidth="0.5" strokeDasharray="3,3" />
         <Line x1="0" y1={height - paddingY} x2={width} y2={height - paddingY} stroke={COLORS.borderLight} strokeWidth="0.5" strokeDasharray="3,3" />
-        {limpas(limpias).map((s, idx) => (
+        {limpias.filter(s => s.data.length > 0).map((s, idx) => (
           <Polyline key={idx} points={aPuntos(s.data)} fill="none" stroke={s.color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
         ))}
       </Svg>
@@ -64,10 +64,6 @@ function LineChartMulti({ series }: { series: Serie[] }) {
   );
 }
 
-function limpas(series: Serie[]) {
-  return series.filter(s => s.data.length > 0);
-}
-
 const chartStyles = StyleSheet.create({
   leyenda: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8 },
   leyendaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
@@ -75,7 +71,7 @@ const chartStyles = StyleSheet.create({
   leyendaTexto: { fontSize: 10, color: COLORS.textSecondary },
 });
 
-// ─── Pantalla de Detalle de Salón (espejo del modal de PC) ───────────────────
+// ─── Pantalla de Detalle de Salón (espejo del modal blanco pastel de PC) ─────
 export default function DetalleSalonScreen({ route, navigation }: any) {
   const { dispositivo } = route.params as { dispositivo: Dispositivo };
   const { lecturas } = useSocket();
@@ -91,10 +87,18 @@ export default function DetalleSalonScreen({ route, navigation }: any) {
   const lectura = lecturas[dispositivo.id];
   const estado = calcularEstado(dispositivo, lectura);
 
-  const colorMap: Record<EstadoSalon, string> = {
-    verde: COLORS.green, amarillo: COLORS.yellow, rojo: COLORS.red, offline: COLORS.gray,
+  // Colores exactos de la PC
+  const dotMap: Record<EstadoSalon, string> = {
+    verde: COLORS.dotVerde, amarillo: COLORS.dotAmarillo, rojo: COLORS.dotRojo, offline: COLORS.dotOffline,
   };
-  const color = colorMap[estado];
+  const badgeMap: Record<EstadoSalon, { bg: string; color: string }> = {
+    verde: { bg: COLORS.greenSoft, color: COLORS.green },
+    amarillo: { bg: COLORS.yellowSoft, color: COLORS.yellow },
+    rojo: { bg: COLORS.redSoft, color: COLORS.red },
+    offline: { bg: COLORS.graySoft, color: COLORS.gray },
+  };
+  const color = dotMap[estado];
+  const badge = badgeMap[estado];
 
   // Cargar últimas lecturas reales para el modo "En vivo"
   const fetchHistorialLive = useCallback(async () => {
@@ -167,7 +171,7 @@ export default function DetalleSalonScreen({ route, navigation }: any) {
     );
   };
 
-  // Datos para la gráfica combinada CO / CO₂ / PM2.5 (igual que PC)
+  // Datos para la gráfica combinada CO / CO₂ / PM2.5 (mismos colores que PC)
   const chartData: Serie[] = rango === 'live'
     ? [
         { data: historialLive.slice(-20).map(l => parseFloat(l.ppm135.toFixed(1))), color: COLORS.blue, nombre: 'CO MQ7 (ppm)' },
@@ -190,9 +194,10 @@ export default function DetalleSalonScreen({ route, navigation }: any) {
         <View style={styles.headerInfo}>
           <Text style={styles.salonTitle}>{dispositivo.salon}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <View style={[styles.estadoBadge, { backgroundColor: color + '22' }]}>
-              <Text style={[styles.estadoText, { color }]}>
-                {estado === 'offline' ? '● Offline' : lectura?.tipo || 'Sin datos'}
+            <View style={[styles.estadoBadge, { backgroundColor: badge.bg }]}>
+              <View style={[styles.estadoDot, { backgroundColor: color }]} />
+              <Text style={[styles.estadoText, { color: badge.color }]}>
+                {estado === 'offline' ? 'Offline' : lectura?.tipo || 'Sin datos'}
               </Text>
             </View>
             {esAdmin && (
@@ -201,14 +206,14 @@ export default function DetalleSalonScreen({ route, navigation }: any) {
                 onPress={eliminarDispositivo}
                 disabled={eliminando}
               >
-                <Text style={{ fontSize: 16 }}>{eliminando ? '…' : '🗑'}</Text>
+                <Text style={{ fontSize: 15 }}>{eliminando ? '…' : '🗑'}</Text>
               </TouchableOpacity>
             )}
           </View>
         </View>
       </View>
 
-      {/* Pestañas de rango */}
+      {/* Pestañas de rango (contenedor gris con pestaña blanca activa, como PC) */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsRow}>
         {RANGOS.map(([val, label]) => (
           <TouchableOpacity
@@ -275,56 +280,93 @@ function MetricCard({ label, value, unit, color }: { label: string; value: strin
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   // Header
-  header: { paddingTop: 50, paddingHorizontal: 20, paddingBottom: 14, backgroundColor: COLORS.bgCard, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  header: {
+    paddingTop: 50, paddingHorizontal: 20, paddingBottom: 16,
+    backgroundColor: COLORS.card, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+  },
   backBtn: { marginBottom: 12 },
-  backText: { color: COLORS.blue, fontSize: 14, fontWeight: '600' },
+  backText: { color: COLORS.textSecondary, fontSize: 14, fontWeight: '600' },
   headerInfo: { gap: 8 },
-  salonTitle: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary },
-  estadoBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 99, alignSelf: 'flex-start' },
-  estadoText: { fontSize: 12, fontWeight: '700' },
+  salonTitle: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.4 },
+  estadoBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999,
+    alignSelf: 'flex-start',
+  },
+  estadoDot: { width: 7, height: 7, borderRadius: 4 },
+  estadoText: { fontSize: 12, fontWeight: '600' },
   btnEliminar: {
-    backgroundColor: COLORS.redGlow,
-    borderWidth: 1,
-    borderColor: 'rgba(244,63,94,0.4)',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    width: 34, height: 34, borderRadius: 10,
+    backgroundColor: COLORS.redSoft,
+    borderWidth: 1.5,
+    borderColor: 'rgba(244,63,94,0.22)',
+    justifyContent: 'center', alignItems: 'center',
   },
-  // Tabs de rango
-  tabsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4 },
+  // Tabs de rango (.tabs-row de PC)
+  tabsRow: {
+    flexDirection: 'row', gap: 6,
+    backgroundColor: COLORS.bgSecondary,
+    borderRadius: 12, padding: 5,
+    marginHorizontal: 16, marginTop: 16, marginBottom: 6,
+  },
   tab: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99,
-    backgroundColor: COLORS.bgCard, borderWidth: 1, borderColor: COLORS.border,
-  },
-  tabActiva: { backgroundColor: COLORS.blueGlow, borderColor: COLORS.blue },
-  tabTexto: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary },
-  tabTextoActiva: { color: COLORS.blue },
-  // Métricas
-  metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', padding: 16, gap: 10 },
-  metricCard: {
-    width: '30%',
     flexGrow: 1,
-    backgroundColor: COLORS.bgCard,
+    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9,
+    alignItems: 'center',
+  },
+  tabActiva: {
+    backgroundColor: COLORS.card,
+    shadowColor: '#1e293b',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  tabTexto: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
+  tabTextoActiva: { color: COLORS.indigo },
+  // Métricas (.modal-metric-card de PC: fondo gris suave)
+  metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', padding: 16, gap: 12 },
+  metricCard: {
+    width: '47%',
+    flexGrow: 1,
+    backgroundColor: COLORS.bgSecondary,
     borderRadius: 14,
-    padding: 16,
+    paddingVertical: 18, paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
     alignItems: 'center',
   },
-  metricLabel: { fontSize: 10, color: COLORS.textMuted, fontWeight: '600', textTransform: 'uppercase', marginBottom: 6, textAlign: 'center' },
-  metricVal: { fontSize: 22, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  metricUnit: { fontSize: 10, color: COLORS.textMuted, marginTop: 2 },
+  metricLabel: {
+    fontSize: 11, color: COLORS.textMuted, fontWeight: '600',
+    textTransform: 'uppercase', letterSpacing: 0.6,
+    marginBottom: 8, textAlign: 'center',
+  },
+  metricVal: { fontSize: 24, fontWeight: '800', fontVariant: ['tabular-nums'], letterSpacing: -0.5 },
+  metricUnit: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
   // Gráfica
-  chartTitulo: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, paddingHorizontal: 20, marginTop: 6, marginBottom: 6 },
+  chartTitulo: {
+    fontSize: 13, fontWeight: '700', color: COLORS.textSecondary,
+    paddingHorizontal: 20, marginTop: 8, marginBottom: 10,
+  },
   chartBox: {
     marginHorizontal: 16,
-    backgroundColor: COLORS.bgCard,
-    borderRadius: 14,
-    padding: 12,
+    backgroundColor: COLORS.card,
+    borderRadius: 18,
+    padding: 14,
     borderWidth: 1,
     borderColor: COLORS.border,
     alignItems: 'center',
+    shadowColor: '#1e293b',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 32,
+    elevation: 2,
   },
-  chartVacio: { marginHorizontal: 16, marginTop: 10, padding: 28, alignItems: 'center' },
+  chartVacio: {
+    marginHorizontal: 16, marginTop: 10, padding: 36,
+    alignItems: 'center',
+    backgroundColor: COLORS.bgSecondary,
+    borderRadius: 14,
+  },
   chartVacioTexto: { color: COLORS.textMuted, fontSize: 13 },
 });
