@@ -32,6 +32,7 @@ const char* DISPOSITIVO_ID = "SALON_01";          // Cambiá por el salón corre
 const char* WIFI_SSID      = "737MUVIECABLE";
 const char* WIFI_PASSWORD  = "5F7UHI650JCI89P";
 const char* SERVER_URL = "https://vcdetection-backend.onrender.com/api/sensor/lectura";
+const char* DEVICE_API_KEY = "QqDVPhcdVT3sVBEuB35M6GLHyR2Z7QpfLli637wSt4";
 
 // ─── Pines ────────────────────────────────────────────────────────────────────
 const int MQ7_PIN   = 32;   // CO — diferenciador de combustión (cigarrillo)
