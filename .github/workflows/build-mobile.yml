@@ -1,0 +1,65 @@
+name: Build Movil (Android APK release)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "movil-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Generar proyecto nativo Android (prebuild)
+        run: npx expo prebuild -p android --clean --no-install
+        env:
+          CI: 1
+          EXPO_NO_TELEMETRY: 1
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Compilar APK release (incluye bundle JS)
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Preparar APK
+        run: |
+          mkdir -p dist-apk
+          cp android/app/build/outputs/apk/release/app-release.apk dist-apk/VCDetection-movil.apk
+
+      - name: Subir artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: VCDetection-APK
+          path: mobile/dist-apk/VCDetection-movil.apk
+          if-no-files-found: error
+
+      - name: Publicar en GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('movil-v{0}', github.run_number) }}
+          name: VCDetection App Movil ${{ github.ref_type == 'tag' && github.ref_name || format('movil-v{0}', github.run_number) }}
+          body: APK release con bundle JS incluido. Instalar directamente en Android.
+          files: mobile/dist-apk/VCDetection-movil.apk
+          make_latest: true
