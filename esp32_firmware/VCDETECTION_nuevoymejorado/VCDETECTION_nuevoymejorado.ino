@@ -32,10 +32,6 @@ const char* DISPOSITIVO_ID = "SALON_01";          // Cambiá por el salón corre
 const char* WIFI_SSID      = "737MUVIECABLE";
 const char* WIFI_PASSWORD  = "5F7UHI650JCI89P";
 const char* SERVER_URL = "https://vcdetection-backend.onrender.com/api/sensor/lectura";
-// API key que autoriza este dispositivo ante el backend.
-// Debe coincidir con la variable DEVICE_API_KEY del .env del servidor.
-// Si no coincide, el servidor rechaza las lecturas con error 401.
-// IMPORTANTE: no subas este archivo con credenciales reales a un repo público.
 const char* DEVICE_API_KEY = "QqDVPhcdVT3sVBEuB35M6GLHyR2Z7QpfLli637wSt4";
 
 // ─── Pines ────────────────────────────────────────────────────────────────────
@@ -78,7 +74,9 @@ int   indiceGases     = 0;
 // En vez de comparar contra un número fijo (que varía por sala/instalación),
 // comparamos contra el promedio "normal" reciente de ESA sala.
 const int NUM_MUESTRAS_BASELINE = 60;
-float historialBase7[NUM_MUESTRAS_BASELINE]    = {0};
+float historialBase7[NUM_MUESTRAS_BASELINE]     = {0};   // CO (MQ7)
+float historialBasePM25[NUM_MUESTRAS_BASELINE]  = {0};   // PM2.5 (PMS5003)
+float historialBaseCO2[NUM_MUESTRAS_BASELINE]   = {0};   // CO2 (MH-Z19C)
 int   indiceBase       = 0;
 bool  bufferBaseLleno  = false;
 
@@ -281,42 +279,52 @@ void leerSensoresYProcesar() {
   }
 
   bool  co_valido = ppmCO >= 0;
+  bool  datosPmValidos = (pm1_0 != -1 && pm2_5 != -1 && pm10 != -1);
+  bool  co2_valido = (co2ppm > 0);
 
   if (co_valido) {
     historialCO[indiceGases % 5] = ppmCO;
   }
   indiceGases++;
 
-  // ── Baseline dinámico de CO (promedio "normal" de esta sala) ────────────
-  // OJO: calculamos el baseline usando SOLO lo acumulado HASTA ANTES de esta
+  // ── Baseline dinámico de CO, PM2.5 y CO2 (promedio "normal" de esta sala) ──
+  // Calculamos cada baseline usando SOLO lo acumulado HASTA ANTES de esta
   // muestra, y decidimos si la muestra actual "parece normal" comparándola
-  // contra ese baseline previo. Si parece un pico, NO la sumamos al histórico
-  // de baseline — así el promedio no se "envenena" con el propio evento que
-  // estamos tratando de detectar (antes, un pico grande alimentaba su propio
-  // baseline y subía el umbral justo cuando más bajo debía estar).
-  float basePrev7 = obtenerPromedio(historialBase7, NUM_MUESTRAS_BASELINE, bufferBaseLleno, indiceBase);
+  // contra ese baseline previo. Si alguno de los tres parece un pico, NINGUNO
+  // de los tres se suma al histórico ese ciclo — así el promedio no se
+  // "envenena" con el propio evento que estamos tratando de detectar.
+  float basePrev7    = obtenerPromedio(historialBase7,    NUM_MUESTRAS_BASELINE, bufferBaseLleno, indiceBase);
+  float basePrevPM   = obtenerPromedio(historialBasePM25, NUM_MUESTRAS_BASELINE, bufferBaseLleno, indiceBase);
+  float basePrevCO2  = obtenerPromedio(historialBaseCO2,  NUM_MUESTRAS_BASELINE, bufferBaseLleno, indiceBase);
 
-  bool muestraNormal7 = co_valido && ((basePrev7 <= 0) || (ppmCO <= basePrev7 * 1.5));
+  bool muestraNormal7   = !co_valido    || (basePrev7   <= 0) || (ppmCO  <= basePrev7  * 1.5);
+  bool muestraNormalPM  = !datosPmValidos || (basePrevPM  <= 0) || (pm2_5  <= basePrevPM * 1.6);
+  bool muestraNormalCO2 = !co2_valido  || (basePrevCO2 <= 0) || (co2ppm <= basePrevCO2 * 1.15);
 
-  if (muestraNormal7) {
-    historialBase7[indiceBase] = ppmCO;
+  if (muestraNormal7 && muestraNormalPM && muestraNormalCO2) {
+    if (co_valido)       historialBase7[indiceBase]    = ppmCO;
+    if (datosPmValidos)  historialBasePM25[indiceBase] = pm2_5;
+    if (co2_valido)      historialBaseCO2[indiceBase]  = co2ppm;
     indiceBase = (indiceBase + 1) % NUM_MUESTRAS_BASELINE;
     if (indiceBase == 0) bufferBaseLleno = true;
   }
-  // Si la muestra fue anómala (o inválida), el índice/buffer de baseline no
+  // Si alguna de las tres fue anómala, el índice/buffer de baseline no
   // avanza: seguimos comparando contra el último baseline "limpio" conocido.
 
-  float base7 = basePrev7;
+  float base7   = basePrev7;
+  float basePM  = basePrevPM;
+  float baseCO2 = basePrevCO2;
 
   bool sensoresCalientes = (millis() - inicioSistema) > TIEMPO_CALENTAMIENTO_MS;
 
-  // 3. Lógica de detección — SIMPLE: primero "¿hay humo?", después una
-  // sugerencia de cuál podría ser (nunca 100% seguro, es una posibilidad
-  // según qué sensor fue el que reaccionó).
+  // 3. Lógica de detección — evidencia combinada de varios sensores.
+  // Primero decide "¿hay humo?" (cualquier señal alcanza), y después arma
+  // un puntaje de evidencia para sugerir cuál podría ser — nunca 100%
+  // seguro, es la mejor pista disponible con el hardware actual.
   bool  picoGas     = detectarPico(historialCO, 5);
   float promHum     = obtenerPromedioHumedad();
 
-  // Salto de humedad — firma típica de vapor (DHT22)
+  // Salto de humedad — firma típica de vapor (DHT22, hoy desconectado)
   bool subidaHum = DHT_CONECTADO && (promHum > 0) && (humedad > promHum + 10.0);
 
   int idxViejo = (indiceHumRapido) % NUM_MUESTRAS_HUM_RAPIDO;
@@ -324,35 +332,51 @@ void leerSensoresYProcesar() {
   bool  saltoHumRapido = DHT_CONECTADO && (humRapidaVieja > 0) && (humedad - humRapidaVieja > 6.0);
   bool  humedadDisparo  = subidaHum || saltoHumRapido;
 
-  // CO (MQ7) — combustión
+  // CO (MQ7) — combustión real. La firma más específica que tenemos.
   bool subidaCO = co_valido && (base7 > 1.0) && (ppmCO > base7 * 1.6);
 
+  // CO2 (MH-Z19C) — la combustión también consume O2 y suelta CO2, aunque
+  // de forma más leve que el CO. Sirve como refuerzo, no como prueba sola
+  // (el CO2 también sube solo por gente respirando en un cuarto cerrado).
+  bool subidaCO2 = co2_valido && (baseCO2 > 50.0) && (co2ppm > baseCO2 * 1.15);
 
-  // Partícula (PMS5003, si está conectado)
-  bool  datosPmValidos = (pm1_0 != -1 && pm2_5 != -1 && pm10 != -1);
-  float ratioPM1_25     = (datosPmValidos && pm2_5 > 0) ? (float)pm1_0 / pm2_5 : -1; // solo informativo en el log
-  bool  pm25_alto       = datosPmValidos && (pm2_5 > 35);
-  bool  pm25_leve        = datosPmValidos && (pm2_5 > 15);
-  bool  particulaDisparo = pm25_alto || pm25_leve;
+  // Partícula (PMS5003) — ahora usamos el PERFIL, no solo el nivel:
+  //  - Nivel general: pm2_5 relativo a SU baseline de esta sala (evita
+  //    falsos positivos/negativos en salas más o menos polvorientas).
+  //  - Ratio PM1.0/PM2.5: aerosol fino y líquido (vape) da un ratio alto
+  //    (~0.85+, las partículas evaporadas son casi todas del mismo tamaño
+  //    chico). Humo de combustión (cigarrillo) da partículas de tamaños más
+  //    variados, con PM10 despegándose más de PM2.5.
+  float ratioPM1_25     = (datosPmValidos && pm2_5 > 0) ? (float)pm1_0 / pm2_5 : -1;
+  bool  subidaPM         = datosPmValidos && (basePM > 3.0) && (pm2_5 > basePM * 1.6);
+  bool  pmMuySaturado     = datosPmValidos && (pm2_5 > 150);      // humo denso encima del sensor
+  bool  particulaFina    = datosPmValidos && (ratioPM1_25 > 0.85);
+  bool  particulaAncha   = datosPmValidos && (pm10 > pm2_5 * 1.3) && (pm2_5 > 15);
+  bool  particulaDisparo = subidaPM || pmMuySaturado;
 
-  // ── ¿Hay humo? (lo único que realmente necesitás) ────────────────────────
-  // Cualquiera de estos sensores reaccionando ya cuenta como "hay algo".
+  // ── ¿Hay humo? Cualquiera de estas señales ya cuenta como "hay algo" ────
   bool humoCrudo = sensoresCalientes &&
-                   (subidaCO || humedadDisparo || particulaDisparo || picoGas);
+                   (subidaCO || subidaCO2 || humedadDisparo || particulaDisparo || picoGas);
 
   contadorHumo = humoCrudo ? contadorHumo + 1 : 0;
   bool humoConfirmado = contadorHumo >= MUESTRAS_CONFIRMACION;
 
-  // ── ¿Cuál podría ser? Solo una pista, no una certeza ─────────────────────
-  // El DHT22 (humedad) es la señal más asociada a vapor de vape.
-  // CO y/o partícula ancha son más típicos de combustión (cigarrillo).
-  // Si no se puede distinguir, se marca genérico como "humo detectado".
+  // ── ¿Cuál podría ser? Puntaje de evidencia, no una certeza ──────────────
+  // Cada señal suma puntos a "combustión" (cigarrillo) o a "vapor" (vape).
+  // El CO pesa más porque es la firma más específica que existe; el resto
+  // son pistas de apoyo más débiles individualmente.
+  int evidenciaCigarrillo = (subidaCO ? 2 : 0) + (particulaAncha ? 1 : 0) + (subidaCO2 ? 1 : 0);
+  int evidenciaVape       = (particulaFina ? 2 : 0) + (humedadDisparo ? 2 : 0);
+
   String posibleCausa = "";
-  if (humedadDisparo && !subidaCO) {
-    posibleCausa = "posible Vape";
-  } else if (subidaCO) {
-    posibleCausa = "posible Cigarrillo";
+  if (evidenciaCigarrillo >= 2 && evidenciaCigarrillo > evidenciaVape) {
+    posibleCausa = (evidenciaCigarrillo >= 3) ? "Cigarrillo, alta confianza" : "posible Cigarrillo";
+  } else if (evidenciaVape >= 2 && evidenciaVape > evidenciaCigarrillo) {
+    posibleCausa = (evidenciaVape >= 4) ? "Vape, alta confianza" : "posible Vape";
   }
+  // Si ninguno de los dos junta suficiente evidencia clara, queda "" y el
+  // mensaje final es un genérico "Humo detectado" — más honesto que forzar
+  // una etiqueta sin sustento.
 
   String tipo        = "Aire limpio";
   bool humoDetectado = false;
@@ -386,8 +410,8 @@ void leerSensoresYProcesar() {
   lec.co2           = co2ppm;
   lec.timestamp     = getTimestampISO();
 
-  Serial.printf("[%s] MQ7-CO:%.1f(Base:%.1f) | Hum:%.1f(Prom:%.1f) | PM1:%d PM2.5:%d PM10:%d (ratio:%.2f) | CO2:%d | %s\n",
-                lec.timestamp.c_str(), ppmCO, base7, humedad, promHum, pm1_0, pm2_5, pm10, ratioPM1_25, co2ppm, tipo.c_str());
+  Serial.printf("[%s] MQ7-CO:%.1f(Base:%.1f) | Hum:%.1f(Prom:%.1f) | PM1:%d PM2.5:%d(Base:%.1f) PM10:%d (ratio:%.2f) | CO2:%d(Base:%.1f) | EvidCig:%d EvidVape:%d | %s\n",
+                lec.timestamp.c_str(), ppmCO, base7, humedad, promHum, pm1_0, pm2_5, basePM, pm10, ratioPM1_25, co2ppm, baseCO2, evidenciaCigarrillo, evidenciaVape, tipo.c_str());
 
 
   // 5. Agregar a cola circular (sobrescribe el más viejo si está llena)
@@ -449,11 +473,6 @@ bool enviarDatos(Lectura &lec) {
   if (respuesta == 200 || respuesta == 201) {
     Serial.println("[HTTP] ✓ Enviado");
     return true;
-  }
-
-  if (respuesta == 401) {
-    Serial.println("[HTTP] ✗ API key rechazada (401). Revisá DEVICE_API_KEY en el firmware y en el .env del servidor");
-    return false;
   }
 
   Serial.printf("[HTTP] ✗ Fallo. Codigo: %d\n", respuesta);
