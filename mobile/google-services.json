@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "120383137716",
+    "project_id": "vcdetection",
+    "storage_bucket": "vcdetection.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:120383137716:android:48f0e58e443d8b7f1e34e1",
+        "android_client_info": {
+          "package_name": "com.vcdetection.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDheRZ9im2Ap7Gzvp5ni5aFKEO3b-0y1B4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
