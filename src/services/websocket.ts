@@ -1,8 +1,36 @@
 import { Server as HttpServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
+import jwt from "jsonwebtoken";
 import { allowedOrigins } from "../config";
 
 let io: SocketIOServer | null = null;
+
+/**
+ * Middleware de autenticación del handshake de Socket.io.
+ * El cliente debe enviar su JWT en auth.token; si es inválido o
+ * falta, se rechaza la conexión (nadie recibe lecturas/alertas
+ * sin estar autenticado).
+ */
+function autenticarHandshake(socket: any, next: (err?: Error) => void): void {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    next(new Error("Servidor sin JWT_SECRET configurado"));
+    return;
+  }
+
+  const token = socket.handshake?.auth?.token;
+  if (!token || typeof token !== "string") {
+    next(new Error("No autenticado: falta token"));
+    return;
+  }
+
+  try {
+    jwt.verify(token, secret);
+    next();
+  } catch {
+    next(new Error("Token inválido o expirado"));
+  }
+}
 
 /**
  * Inicializa Socket.io sobre el servidor HTTP.
@@ -15,6 +43,8 @@ export function initWebSocket(httpServer: HttpServer): SocketIOServer {
       methods: ["GET", "POST"],
     },
   });
+
+  io.use(autenticarHandshake);
 
   io.on("connection", (socket) => {
     console.log(`[WS] Cliente conectado: ${socket.id}`);

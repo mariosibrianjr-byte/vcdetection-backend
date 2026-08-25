@@ -456,7 +456,10 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchInicial();
 
-    const socket = io(API_URL, { transports: ['websocket'] });
+    const socket = io(API_URL, {
+      transports: ['websocket'],
+      auth: { token: localStorage.getItem('vc_token') },
+    });
     socketRef.current = socket;
 
     socket.on('nueva-lectura', (lectura: Lectura) => {

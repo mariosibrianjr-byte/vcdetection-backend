@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { API_URL } from '../config';
+import { useAuth } from './AuthContext';
 import type { Lectura, Alerta, Dispositivo } from '../types';
 
 interface SocketContextType {
@@ -17,10 +18,17 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [alertasNuevas, setAlertasNuevas] = useState<Alerta[]>([]);
   const [dispositivoUpdates, setDispositivoUpdates] = useState<Record<string, Dispositivo>>({});
   const socketRef = useRef<Socket | null>(null);
+  const { token } = useAuth();
 
   useEffect(() => {
-    // Conectar al servidor de WebSockets
-    const socket = io(API_URL, { transports: ['websocket'] });
+    if (!token) return;
+
+    // Conectar al servidor de WebSockets enviando el JWT (el backend
+    // rechaza conexiones sin token válido)
+    const socket = io(API_URL, {
+      transports: ['websocket'],
+      auth: { token },
+    });
     socketRef.current = socket;
 
     socket.on('connect', () => {
@@ -49,7 +57,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [token]);
 
   const limpiarAlertasNuevas = useCallback(() => {
     setAlertasNuevas([]);
