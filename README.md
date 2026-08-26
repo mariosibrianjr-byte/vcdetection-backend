@@ -2,6 +2,34 @@
 
 Backend del sistema encubierto de detección de humo de vape/cigarrillo para colegios.
 
+## Descargas
+
+| Plataforma | Enlace directo |
+|------------|----------------|
+| Android (APK) | https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/download/latest/VCDetection-movil.apk |
+| Windows (instalador) | https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/download/latest/VCDetection-Setup.exe |
+
+Los enlaces siempre apuntan a la última versión estable (release `latest`, publicado por los workflows de GitHub Actions).
+
+## Página web
+
+La página explicativa del proyecto vive en [`docs/index.html`](docs/index.html) y se publica gratis con **GitHub Pages**.
+
+### Activar GitHub Pages (una sola vez)
+
+1. En GitHub: **Settings** → **Pages**
+2. **Source**: *Deploy from a branch*
+3. **Branch**: `main` y carpeta `/docs`
+4. Guardar. La página queda disponible en:
+   `https://mariosibrianjr-byte.github.io/vcdetection-backend/`
+
+### Compilar las apps
+
+- **APK Android**: empujar un tag `movil-v*` o ejecutar el workflow "Build Movil" manualmente (pestaña **Actions**).
+- **Instalador Windows**: empujar un tag `v*` o ejecutar el workflow "Build Desktop" manualmente.
+
+Ambos workflows publican el artefacto tanto en un release versionado como en el release fijo `latest`.
+
 ## Stack
 
 - **TypeScript** + **Node.js** + **Express**

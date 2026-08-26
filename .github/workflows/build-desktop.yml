@@ -6,6 +6,9 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -25,10 +28,40 @@ jobs:
       - name: Compilar instalador
         run: npm run electron:dist
 
+      # El instalador sale con el nombre "VCDetection Setup <version>.exe".
+      # Se renombra a un nombre fijo para que el link de descarga sea estable.
+      - name: Preparar instalador
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist-exe | Out-Null
+          $exe = Get-ChildItem -Path release -Filter *.exe | Select-Object -First 1
+          if (-not $exe) { throw "No se encontró ningún .exe en frontend/release" }
+          Copy-Item -LiteralPath $exe.FullName -Destination "dist-exe/VCDetection-Setup.exe"
+          Write-Output "Instalador preparado: $($exe.Name) -> VCDetection-Setup.exe"
+
       - name: Subir instalador como artefacto
         uses: actions/upload-artifact@v4
         with:
           name: VCDetection-Windows-Setup
-          path: |
-            frontend/release/*.exe
+          path: frontend/dist-exe/VCDetection-Setup.exe
           if-no-files-found: error
+
+      # Release versionado (solo cuando se empuja un tag v*)
+      - name: Publicar en GitHub Releases
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: VCDetection Desktop ${{ github.ref_name }}
+          body: Instalador de Windows (NSIS). Ejecutar y seguir el asistente.
+          files: frontend/dist-exe/VCDetection-Setup.exe
+
+      # Release fijo "latest": mantiene siempre la última versión de cada app,
+      # para que el botón de descarga de la página web nunca se rompa.
+      - name: Publicar en release latest (link estable)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Descargas estables (última versión)
+          body: Última versión estable de cada aplicación. Descarga directa desde la página del proyecto.
+          files: frontend/dist-exe/VCDetection-Setup.exe

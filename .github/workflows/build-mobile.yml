@@ -63,3 +63,13 @@ jobs:
           body: APK release con bundle JS incluido. Instalar directamente en Android.
           files: mobile/dist-apk/VCDetection-movil.apk
           make_latest: true
+
+      # Release fijo "latest": mantiene siempre la última versión de cada app,
+      # para que el botón de descarga de la página web nunca se rompa.
+      - name: Publicar en release latest (link estable)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Descargas estables (última versión)
+          body: Última versión estable de cada aplicación. Descarga directa desde la página del proyecto.
+          files: mobile/dist-apk/VCDetection-movil.apk
