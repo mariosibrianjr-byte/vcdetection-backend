@@ -29,3 +29,6 @@ Thumbs.db
 # IDEs
 .vscode/
 .idea/
+
+# Carpeta duplicada antigua del proyecto (ya eliminada del repo)
+vcdetection-backend/
