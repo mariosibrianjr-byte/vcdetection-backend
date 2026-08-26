@@ -15,7 +15,7 @@ function createWindow() {
     minWidth: 1000,
     minHeight: 700,
     title: 'VCDetection — Panel de Control',
-    icon: path.join(__dirname, '..', 'public', 'favicon.svg'),
+    icon: path.join(__dirname, 'logo.png'),
     backgroundColor: '#080d14',
     autoHideMenuBar: true,
     titleBarStyle: 'default',
@@ -50,8 +50,8 @@ function createWindow() {
 
 // ─── Menú de la bandeja del sistema ─────────────────────────────────────────
 function createTray() {
-  // Crear un icono básico para la bandeja
-  const icon = nativeImage.createEmpty();
+  // Icono de la bandeja con el logo oficial
+  const icon = nativeImage.createFromPath(path.join(__dirname, 'logo.png')).resize({ width: 16, height: 16 });
   tray = new Tray(icon);
   tray.setToolTip('VCDetection — Monitoreo Activo');
 

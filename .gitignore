@@ -8,6 +8,9 @@ build/
 release/
 *.asar
 frontend/release/
+# Excepción: icono oficial para el instalador de Windows
+!frontend/build/
+!frontend/build/icon.png
 
 # Archivos comprimidos de respaldo
 *.rar
