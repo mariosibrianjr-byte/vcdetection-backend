@@ -790,6 +790,17 @@ body {
   box-shadow: 0 6px 16px -4px rgba(124,58,237,0.3);
 }
 
+/* ─── Botón de sonido ──────────────────────────────────────────────────────── */
+.btn-sonido {
+  min-width: 38px;
+  padding: 7px 10px;
+  font-size: 16px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* ─── Panel de usuarios ─────────────────────────────────────────────────────── */
 .modal-usuarios { max-width: 560px; }
 

@@ -421,22 +421,106 @@ export default function DashboardPage() {
   const [modalDisp, setModalDisp] = useState<Dispositivo | null>(null);
   const [alertasNoVistas, setAlertasNoVistas] = useState(0);
   const [showUsuarios, setShowUsuarios] = useState(false);
+  const [sonidoActivo, setSonidoActivo] = useState(() => {
+    const saved = localStorage.getItem('vc_sonido');
+    return saved !== null ? saved === 'true' : true;
+  });
   const socketRef = useRef<Socket | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
-  const sonarAlertar = useCallback(() => {
+  // Obtener o crear el AudioContext (se reutiliza para no crear uno por cada alerta)
+  const getAudioCtx = useCallback((): AudioContext | null => {
     try {
-      const ctx = new AudioContext();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.setValueAtTime(880, ctx.currentTime);
-      osc.frequency.setValueAtTime(660, ctx.currentTime + 0.1);
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.setValueAtTime(0, ctx.currentTime + 0.3);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.3);
-    } catch { /* silencioso si no hay contexto de audio */ }
+      if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+        audioCtxRef.current = new AudioContext();
+      }
+      if (audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume();
+      }
+      return audioCtxRef.current;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // ── Sistema de Alertas Acústicas ──────────────────────────────────────────
+  // Sonidos diferenciados por gravedad:
+  //   🚨 CRITICO  (CIGARRILLO / ALTA_CONFIANZA) → Sirena de 3 pulsos agudos
+  //   🌫️ MODERADO (VAPE_CONFIRMADO)             → 2 tonos descendentes
+  //   💨 BAJO     (PM25_ALTO)                    → Ping suave
+  const sonarAlertar = useCallback((tipoAlerta?: string) => {
+    if (!sonidoActivo) return;
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+
+    const tipo = tipoAlerta || '';
+    const esCritico = tipo === 'CIGARRILLO' || tipo === 'ALTA_CONFIANZA';
+    const esModerado = tipo === 'VAPE_CONFIRMADO';
+    // PM25_ALTO o cualquier otro → nivel bajo
+
+    try {
+      if (esCritico) {
+        // ── Sirena: 3 pulsos rápidos agudos ──────────────────────────────
+        for (let i = 0; i < 3; i++) {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'square';
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          const t = ctx.currentTime + i * 0.28;
+          osc.frequency.setValueAtTime(1200, t);
+          osc.frequency.linearRampToValueAtTime(800, t + 0.12);
+          gain.gain.setValueAtTime(0, t);
+          gain.gain.linearRampToValueAtTime(0.25, t + 0.02);
+          gain.gain.setValueAtTime(0.25, t + 0.12);
+          gain.gain.linearRampToValueAtTime(0, t + 0.22);
+          osc.start(t);
+          osc.stop(t + 0.22);
+        }
+      } else if (esModerado) {
+        // ── 2 tonos descendentes ─────────────────────────────────────────
+        for (let i = 0; i < 2; i++) {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          const t = ctx.currentTime + i * 0.25;
+          osc.frequency.setValueAtTime(i === 0 ? 880 : 660, t);
+          gain.gain.setValueAtTime(0, t);
+          gain.gain.linearRampToValueAtTime(0.22, t + 0.02);
+          gain.gain.setValueAtTime(0.22, t + 0.12);
+          gain.gain.linearRampToValueAtTime(0, t + 0.2);
+          osc.start(t);
+          osc.stop(t + 0.2);
+        }
+      } else {
+        // ── Ping suave ───────────────────────────────────────────────────
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        const t = ctx.currentTime;
+        osc.frequency.setValueAtTime(660, t);
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.18, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+        osc.start(t);
+        osc.stop(t + 0.4);
+      }
+    } catch { /* silencioso si falla el audio */ }
+  }, [sonidoActivo, getAudioCtx]);
+
+  const toggleSonido = useCallback(() => {
+    setSonidoActivo(prev => {
+      const nuevo = !prev;
+      localStorage.setItem('vc_sonido', String(nuevo));
+      return nuevo;
+    });
   }, []);
 
   const fetchInicial = useCallback(async () => {
@@ -474,7 +558,7 @@ export default function DashboardPage() {
       setAlertas(prev => [alerta, ...prev.slice(0, 29)]);
       setAlertasNoVistas(prev => prev + 1);
       setToasts(prev => [{ id: alerta.id, alerta }, ...prev]);
-      sonarAlertar();
+      sonarAlertar(alerta.tipo);
     });
 
     socket.on('dispositivo-update', (disp: Dispositivo) => {
@@ -519,6 +603,13 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="navbar-right">
+          <button
+            className="btn-nav btn-sonido"
+            onClick={toggleSonido}
+            title={sonidoActivo ? 'Silenciar alertas' : 'Activar sonido de alertas'}
+          >
+            {sonidoActivo ? '🔊' : '🔇'}
+          </button>
           {alertasNoVistas > 0 && (
             <span className="navbar-badge">🔔 {alertasNoVistas}</span>
           )}
