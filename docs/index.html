@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VCDetection — Detección de vape y cigarrillo para colegios</title>
-  <meta name="description" content="Sistema encubierto de detección de humo de vape y cigarrillo para colegios. Sensores ESP32, alertas en tiempo real, notificaciones push y panel de monitoreo." />
+  <meta name="description"
+    content="Sistema encubierto de detección de humo de vape y cigarrillo para colegios. Sensores ESP32, alertas en tiempo real, notificaciones push y panel de monitoreo." />
   <meta property="og:title" content="VCDetection" />
-  <meta property="og:description" content="Detección inteligente de vape y cigarrillo en colegios. Alertas en tiempo real en tu celular y PC." />
+  <meta property="og:description"
+    content="Detección inteligente de vape y cigarrillo en colegios. Alertas en tiempo real en tu celular y PC." />
   <link rel="icon" type="image/png" href="favicon.png" />
   <style>
     :root {
@@ -21,160 +24,537 @@
       --borde: #eef0f6;
       --rojo: #ef4444;
     }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
       font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
       background: var(--fondo);
       color: var(--texto);
       line-height: 1.6;
     }
-    .contenedor { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+    .contenedor {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
 
     /* ===== Navegación ===== */
     nav {
-      position: sticky; top: 0; z-index: 100;
-      background: rgba(255,255,255,.85);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, .85);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--borde);
     }
-    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
-    .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; text-decoration: none; color: var(--texto); }
-    .logo svg, .logo img { width: 30px; height: 30px; object-fit: contain; }
-    .nav-links { display: flex; align-items: center; gap: 26px; }
-    .nav-links a { text-decoration: none; color: var(--texto-suave); font-size: 15px; font-weight: 500; transition: color .2s; }
-    .nav-links a:hover { color: var(--azul); }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 18px;
+      text-decoration: none;
+      color: var(--texto);
+    }
+
+    .logo svg,
+    .logo img {
+      width: 30px;
+      height: 30px;
+      object-fit: contain;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 26px;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: var(--texto-suave);
+      font-size: 15px;
+      font-weight: 500;
+      transition: color .2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--azul);
+    }
 
     /* ===== Botones ===== */
     .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-      padding: 14px 28px; border-radius: 12px; font-weight: 600; font-size: 16px;
-      text-decoration: none; transition: transform .15s ease, box-shadow .15s ease;
-      border: none; cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 16px;
+      text-decoration: none;
+      transition: transform .15s ease, box-shadow .15s ease;
+      border: none;
+      cursor: pointer;
     }
-    .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(99,102,241,.25); }
-    .btn-primario { background: var(--gradiente); color: white; box-shadow: 0 4px 14px rgba(124,58,237,.3); }
-    .btn-secundario { background: white; color: var(--azul); border: 1.5px solid #dbe0ee; }
-    .btn-sm { padding: 9px 18px; font-size: 14px; border-radius: 10px; }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(99, 102, 241, .25);
+    }
+
+    .btn-primario {
+      background: var(--gradiente);
+      color: white;
+      box-shadow: 0 4px 14px rgba(124, 58, 237, .3);
+    }
+
+    .btn-secundario {
+      background: white;
+      color: var(--azul);
+      border: 1.5px solid #dbe0ee;
+    }
+
+    .btn-sm {
+      padding: 9px 18px;
+      font-size: 14px;
+      border-radius: 10px;
+    }
 
     /* ===== Hero ===== */
-    header.hero { position: relative; overflow: hidden; padding: 90px 0 70px; }
+    header.hero {
+      position: relative;
+      overflow: hidden;
+      padding: 90px 0 70px;
+    }
+
     .blob {
-      position: absolute; width: 520px; height: 520px; border-radius: 50%;
-      filter: blur(120px); opacity: .16; pointer-events: none;
+      position: absolute;
+      width: 520px;
+      height: 520px;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: .16;
+      pointer-events: none;
     }
-    .blob-a { background: var(--violeta); top: -180px; right: -80px; }
-    .blob-b { background: var(--verde); bottom: -220px; left: -120px; }
-    .hero-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 56px; align-items: center; position: relative; }
+
+    .blob-a {
+      background: var(--violeta);
+      top: -180px;
+      right: -80px;
+    }
+
+    .blob-b {
+      background: var(--verde);
+      bottom: -220px;
+      left: -120px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 56px;
+      align-items: center;
+      position: relative;
+    }
+
     .badge {
-      display: inline-block; background: linear-gradient(135deg, rgba(124,58,237,.12), rgba(16,185,129,.12));
-      color: var(--azul); border: 1px solid rgba(79,70,229,.25);
-      padding: 6px 16px; border-radius: 999px; font-size: 13.5px; font-weight: 600; margin-bottom: 20px;
+      display: inline-block;
+      background: linear-gradient(135deg, rgba(124, 58, 237, .12), rgba(16, 185, 129, .12));
+      color: var(--azul);
+      border: 1px solid rgba(79, 70, 229, .25);
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-bottom: 20px;
     }
-    h1 { font-size: clamp(34px, 5vw, 52px); line-height: 1.12; letter-spacing: -1px; margin-bottom: 20px; }
-    h1 span { background: var(--gradiente); -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .hero p.sub { font-size: 19px; color: var(--texto-suave); max-width: 520px; margin-bottom: 34px; }
-    .hero-botones { display: flex; flex-wrap: wrap; gap: 14px; }
+
+    h1 {
+      font-size: clamp(34px, 5vw, 52px);
+      line-height: 1.12;
+      letter-spacing: -1px;
+      margin-bottom: 20px;
+    }
+
+    h1 span {
+      background: var(--gradiente);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero p.sub {
+      font-size: 19px;
+      color: var(--texto-suave);
+      max-width: 520px;
+      margin-bottom: 34px;
+    }
+
+    .hero-botones {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
 
     /* Tarjeta de alerta simulada */
-    .mock-zona { display: flex; justify-content: center; }
+    .mock-zona {
+      display: flex;
+      justify-content: center;
+    }
+
     .mock-alerta {
-      background: white; border-radius: 18px; border: 1px solid var(--borde);
-      box-shadow: 0 24px 60px rgba(30,41,59,.12);
-      width: 340px; max-width: 100%; overflow: hidden;
+      background: white;
+      border-radius: 18px;
+      border: 1px solid var(--borde);
+      box-shadow: 0 24px 60px rgba(30, 41, 59, .12);
+      width: 340px;
+      max-width: 100%;
+      overflow: hidden;
       animation: flotar 5s ease-in-out infinite;
     }
-    @keyframes flotar { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-    .mock-franja { height: 6px; background: var(--gradiente); }
-    .mock-cuerpo { padding: 20px 22px 22px; }
-    .mock-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+
+    @keyframes flotar {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    .mock-franja {
+      height: 6px;
+      background: var(--gradiente);
+    }
+
+    .mock-cuerpo {
+      padding: 20px 22px 22px;
+    }
+
+    .mock-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
     .mock-icono {
-      width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
-      background: #fef2f2; display: grid; place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      flex-shrink: 0;
+      background: #fef2f2;
+      display: grid;
+      place-items: center;
     }
-    .mock-titulo { font-weight: 700; font-size: 15.5px; }
-    .mock-sub { font-size: 13px; color: var(--texto-suave); }
-    .mock-stats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+
+    .mock-titulo {
+      font-weight: 700;
+      font-size: 15.5px;
+    }
+
+    .mock-sub {
+      font-size: 13px;
+      color: var(--texto-suave);
+    }
+
+    .mock-stats {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
     .chip {
-      font-size: 11.5px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
-      background: #f4f5fb; color: #475569; border: 1px solid var(--borde);
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #f4f5fb;
+      color: #475569;
+      border: 1px solid var(--borde);
     }
+
     .mock-enviado {
-      font-size: 12.5px; color: #059669; background: #ecfdf5;
-      border: 1px solid #d1fae5; padding: 8px 12px; border-radius: 10px; font-weight: 600;
+      font-size: 12.5px;
+      color: #059669;
+      background: #ecfdf5;
+      border: 1px solid #d1fae5;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-weight: 600;
     }
 
     /* ===== Secciones ===== */
-    section { padding: 76px 0; }
-    .titulo-seccion { text-align: center; max-width: 640px; margin: 0 auto 52px; }
-    .titulo-seccion h2 { font-size: clamp(26px, 3.4vw, 36px); letter-spacing: -.5px; margin-bottom: 12px; }
-    .titulo-seccion p { color: var(--texto-suave); font-size: 17px; }
+    section {
+      padding: 76px 0;
+    }
+
+    .titulo-seccion {
+      text-align: center;
+      max-width: 640px;
+      margin: 0 auto 52px;
+    }
+
+    .titulo-seccion h2 {
+      font-size: clamp(26px, 3.4vw, 36px);
+      letter-spacing: -.5px;
+      margin-bottom: 12px;
+    }
+
+    .titulo-seccion p {
+      color: var(--texto-suave);
+      font-size: 17px;
+    }
 
     /* Cómo funciona */
-    .pasos { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 22px; counter-reset: paso; }
+    .pasos {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 22px;
+      counter-reset: paso;
+    }
+
     .paso {
-      background: white; border: 1px solid var(--borde); border-radius: 18px; padding: 28px 24px;
-      position: relative; transition: transform .2s, box-shadow .2s;
+      background: white;
+      border: 1px solid var(--borde);
+      border-radius: 18px;
+      padding: 28px 24px;
+      position: relative;
+      transition: transform .2s, box-shadow .2s;
     }
-    .paso:hover { transform: translateY(-4px); box-shadow: 0 14px 34px rgba(30,41,59,.08); }
+
+    .paso:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 14px 34px rgba(30, 41, 59, .08);
+    }
+
     .paso::before {
-      counter-increment: paso; content: "0" counter(paso);
-      font-size: 13px; font-weight: 800; letter-spacing: 1px;
-      background: var(--gradiente); -webkit-background-clip: text; background-clip: text; color: transparent;
+      counter-increment: paso;
+      content: "0" counter(paso);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      background: var(--gradiente);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
-    .paso h3 { font-size: 17px; margin: 8px 0 8px; }
-    .paso p { font-size: 14.5px; color: var(--texto-suave); }
-    .sensores { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 44px; }
+
+    .paso h3 {
+      font-size: 17px;
+      margin: 8px 0 8px;
+    }
+
+    .paso p {
+      font-size: 14.5px;
+      color: var(--texto-suave);
+    }
+
+    .sensores {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 44px;
+    }
+
     .sensor-chip {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: white; border: 1px solid var(--borde); border-radius: 999px;
-      padding: 9px 18px; font-size: 14px; font-weight: 600; color: #475569;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: white;
+      border: 1px solid var(--borde);
+      border-radius: 999px;
+      padding: 9px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #475569;
     }
-    .sensor-chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--verde); }
+
+    .sensor-chip i {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--verde);
+    }
 
     /* Características */
-    .grid-caracs { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 22px; }
+    .grid-caracs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 22px;
+    }
+
     .carac {
-      background: white; border: 1px solid var(--borde); border-radius: 18px; padding: 26px;
+      background: white;
+      border: 1px solid var(--borde);
+      border-radius: 18px;
+      padding: 26px;
       transition: transform .2s, box-shadow .2s;
     }
-    .carac:hover { transform: translateY(-4px); box-shadow: 0 14px 34px rgba(30,41,59,.08); }
-    .carac-icono {
-      width: 48px; height: 48px; border-radius: 13px; display: grid; place-items: center; margin-bottom: 16px;
-      background: linear-gradient(135deg, rgba(124,58,237,.1), rgba(16,185,129,.1));
+
+    .carac:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 14px 34px rgba(30, 41, 59, .08);
     }
-    .carac h3 { font-size: 16.5px; margin-bottom: 6px; }
-    .carac p { font-size: 14.5px; color: var(--texto-suave); }
+
+    .carac-icono {
+      width: 48px;
+      height: 48px;
+      border-radius: 13px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, rgba(124, 58, 237, .1), rgba(16, 185, 129, .1));
+    }
+
+    .carac h3 {
+      font-size: 16.5px;
+      margin-bottom: 6px;
+    }
+
+    .carac p {
+      font-size: 14.5px;
+      color: var(--texto-suave);
+    }
 
     /* Descargas */
-    .descargas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 26px; max-width: 860px; margin: 0 auto; }
+    .descargas-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 26px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
     .tarjeta-descarga {
-      background: white; border: 1px solid var(--borde); border-radius: 22px; padding: 36px 30px;
-      text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px;
+      background: white;
+      border: 1px solid var(--borde);
+      border-radius: 22px;
+      padding: 36px 30px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
       transition: transform .2s, box-shadow .2s;
     }
-    .tarjeta-descarga:hover { transform: translateY(-5px); box-shadow: 0 20px 44px rgba(30,41,59,.1); }
-    .plataforma-icono { width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center; margin-bottom: 10px; }
-    .icono-android { background: linear-gradient(135deg, #ecfdf5, #d1fae5); }
-    .icono-windows { background: linear-gradient(135deg, #eef2ff, #ede9fe); }
-    .tarjeta-descarga h3 { font-size: 20px; }
-    .tarjeta-descarga .formato { font-size: 13px; color: var(--texto-suave); margin-bottom: 14px; }
-    .tarjeta-descarga ul { list-style: none; margin: 4px 0 20px; }
-    .tarjeta-descarga li { font-size: 13.5px; color: var(--texto-suave); padding: 3px 0; }
-    .nota-descargas { text-align: center; margin-top: 30px; font-size: 14px; color: var(--texto-suave); }
-    .nota-descargas a { color: var(--azul); font-weight: 600; }
 
-    footer { border-top: 1px solid var(--borde); padding: 40px 0 46px; text-align: center; color: var(--texto-suave); font-size: 14px; background: white; }
-    footer .logo { justify-content: center; margin-bottom: 12px; }
-    footer a { color: var(--azul); text-decoration: none; font-weight: 600; }
+    .tarjeta-descarga:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 44px rgba(30, 41, 59, .1);
+    }
+
+    .plataforma-icono {
+      width: 64px;
+      height: 64px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 10px;
+    }
+
+    .icono-android {
+      background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+    }
+
+    .icono-windows {
+      background: linear-gradient(135deg, #eef2ff, #ede9fe);
+    }
+
+    .tarjeta-descarga h3 {
+      font-size: 20px;
+    }
+
+    .tarjeta-descarga .formato {
+      font-size: 13px;
+      color: var(--texto-suave);
+      margin-bottom: 14px;
+    }
+
+    .tarjeta-descarga ul {
+      list-style: none;
+      margin: 4px 0 20px;
+    }
+
+    .tarjeta-descarga li {
+      font-size: 13.5px;
+      color: var(--texto-suave);
+      padding: 3px 0;
+    }
+
+    .nota-descargas {
+      text-align: center;
+      margin-top: 30px;
+      font-size: 14px;
+      color: var(--texto-suave);
+    }
+
+    .nota-descargas a {
+      color: var(--azul);
+      font-weight: 600;
+    }
+
+    footer {
+      border-top: 1px solid var(--borde);
+      padding: 40px 0 46px;
+      text-align: center;
+      color: var(--texto-suave);
+      font-size: 14px;
+      background: white;
+    }
+
+    footer .logo {
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+
+    footer a {
+      color: var(--azul);
+      text-decoration: none;
+      font-weight: 600;
+    }
 
     @media (max-width: 860px) {
-      .hero-grid { grid-template-columns: 1fr; gap: 44px; }
-      .nav-links a:not(.btn) { display: none; }
-      section { padding: 56px 0; }
+      .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 44px;
+      }
+
+      .nav-links a:not(.btn) {
+        display: none;
+      }
+
+      section {
+        padding: 56px 0;
+      }
     }
   </style>
 </head>
+
 <body>
 
   <!-- ============ NAVEGACIÓN ============ -->
@@ -188,7 +568,8 @@
         <a href="#como-funciona">Cómo funciona</a>
         <a href="#caracteristicas">Características</a>
         <a href="#descargas">Descargas</a>
-        <a class="btn btn-secundario btn-sm" href="https://github.com/mariosibrianjr-byte/vcdetection-backend" target="_blank" rel="noopener">GitHub</a>
+        <a class="btn btn-secundario btn-sm" href="https://github.com/mariosibrianjr-byte/vcdetection-backend"
+          target="_blank" rel="noopener">GitHub</a>
       </div>
     </div>
   </nav>
@@ -207,10 +588,12 @@
           con el salón exacto — en su celular y su computadora.
         </p>
         <div class="hero-botones">
-          <a class="btn btn-primario" href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/latest/download/VCDetection-movil.apk">
+          <a class="btn btn-primario"
+            href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/download/latest/VCDetection-movil.apk">
             Descargar Android (APK)
           </a>
-          <a class="btn btn-secundario" href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/latest/download/VCDetection-Setup.exe">
+          <a class="btn btn-secundario"
+            href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/download/latest/VCDetection-Setup.exe">
             Descargar Windows (.exe)
           </a>
         </div>
@@ -221,7 +604,12 @@
           <div class="mock-cuerpo">
             <div class="mock-top">
               <div class="mock-icono">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
               </div>
               <div>
                 <div class="mock-titulo">Vape confirmado</div>
@@ -250,19 +638,23 @@
       <div class="pasos">
         <div class="paso">
           <h3>Sensores discretos</h3>
-          <p>Un módulo compacto basado en ESP32 mide continuamente la calidad del aire del salón: monóxido de carbono, material particulado fino, CO₂, temperatura y humedad.</p>
+          <p>Un módulo compacto basado en ESP32 mide continuamente la calidad del aire del salón: monóxido de carbono,
+            material particulado fino, CO₂, temperatura y humedad.</p>
         </div>
         <div class="paso">
           <h3>Transmisión segura</h3>
-          <p>Cada lectura viaja al servidor por WiFi usando una clave API exclusiva del dispositivo, autenticada y verificada en cada envío.</p>
+          <p>Cada lectura viaja al servidor por WiFi usando una clave API exclusiva del dispositivo, autenticada y
+            verificada en cada envío.</p>
         </div>
         <div class="paso">
           <h3>Análisis inteligente</h3>
-          <p>El servidor cruza los gases, partículas y humedad para reconocer el patrón del vapor de vape o el humo de cigarrillo, ignorando falsos positivos.</p>
+          <p>El servidor cruza los gases, partículas y humedad para reconocer el patrón del vapor de vape o el humo de
+            cigarrillo, ignorando falsos positivos.</p>
         </div>
         <div class="paso">
           <h3>Alerta instantánea</h3>
-          <p>En menos de un segundo llega la notificación push al celular, el correo electrónico al coordinador y la señal en vivo al panel del dashboard.</p>
+          <p>En menos de un segundo llega la notificación push al celular, el correo electrónico al coordinador y la
+            señal en vivo al panel del dashboard.</p>
         </div>
       </div>
       <div class="sensores">
@@ -283,32 +675,53 @@
       </div>
       <div class="grid-caracs">
         <div class="carac">
-          <div class="carac-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+          <div class="carac-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed"
+              stroke-width="2" stroke-linecap="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+            </svg></div>
           <h3>Tiempo real</h3>
           <p>Lecturas y alertas en vivo vía WebSockets, sin recargar la pantalla.</p>
         </div>
         <div class="carac">
-          <div class="carac-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div>
+          <div class="carac-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 01-3.46 0" />
+            </svg></div>
           <h3>Notificaciones push</h3>
           <p>Alertas al instante en Android mediante Firebase Cloud Messaging.</p>
         </div>
         <div class="carac">
-          <div class="carac-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+          <div class="carac-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+              <polyline points="22,6 12,13 2,6" />
+            </svg></div>
           <h3>Alertas por email</h3>
           <p>Cada detección importante se reporta también por correo electrónico.</p>
         </div>
         <div class="carac">
-          <div class="carac-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+          <div class="carac-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+            </svg></div>
           <h3>Historial y estadísticas</h3>
           <p>Gráficas por rango de fechas, resumen de 24 horas y conteo por tipo de alerta.</p>
         </div>
         <div class="carac">
-          <div class="carac-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+          <div class="carac-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg></div>
           <h3>Seguridad por capas</h3>
           <p>JWT para usuarios, clave API para sensores, roles ADMIN/COORDINADOR y límite de intentos de acceso.</p>
         </div>
         <div class="carac">
-          <div class="carac-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg></div>
+          <div class="carac-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2" />
+              <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
+            </svg></div>
           <h3>Multisalón</h3>
           <p>Gestiona todos los sensores del colegio desde un solo lugar y ve cuáles están conectados.</p>
         </div>
@@ -326,7 +739,11 @@
       <div class="descargas-grid">
         <div class="tarjeta-descarga">
           <div class="plataforma-icono icono-android">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="5" y="2" width="14" height="20" rx="2" />
+              <line x1="12" y1="18" x2="12.01" y2="18" />
+            </svg>
           </div>
           <h3>Android</h3>
           <div class="formato">Archivo APK · Instalación directa</div>
@@ -335,11 +752,16 @@
             <li>Notificaciones push incluidas</li>
             <li>Permitir "apps de origen desconocido"</li>
           </ul>
-          <a class="btn btn-primario" href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/latest/download/VCDetection-movil.apk">Descargar APK</a>
+          <a class="btn btn-primario"
+            href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/latest/download/VCDetection-movil.apk">Descargar
+            APK</a>
         </div>
         <div class="tarjeta-descarga">
           <div class="plataforma-icono icono-windows">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="#4f46e5"><path d="M3 5.5l7.5-1v7H3v-6zm0 13v-6h7.5v7L3 18.5zm8.5 1.1v-7.1H21v8l-9.5-1.3v.4zm0-15.2L21 3.3v8.2h-9.5v-7z"/></svg>
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="#4f46e5">
+              <path
+                d="M3 5.5l7.5-1v7H3v-6zm0 13v-6h7.5v7L3 18.5zm8.5 1.1v-7.1H21v8l-9.5-1.3v.4zm0-15.2L21 3.3v8.2h-9.5v-7z" />
+            </svg>
           </div>
           <h3>Windows</h3>
           <div class="formato">Instalador .exe · Asistente paso a paso</div>
@@ -348,11 +770,14 @@
             <li>Panel completo de administración</li>
             <li>Instalación en cualquier carpeta</li>
           </ul>
-          <a class="btn btn-primario" href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/latest/download/VCDetection-Setup.exe">Descargar instalador</a>
+          <a class="btn btn-primario"
+            href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/latest/download/VCDetection-Setup.exe">Descargar
+            instalador</a>
         </div>
       </div>
       <p class="nota-descargas">
-        ¿Buscas una versión anterior? <a href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases" target="_blank" rel="noopener">Ver todas las versiones publicadas</a>
+        ¿Buscas una versión anterior? <a href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases"
+          target="_blank" rel="noopener">Ver todas las versiones publicadas</a>
       </p>
     </div>
   </section>
@@ -365,9 +790,11 @@
         VCDetection
       </a>
       <p>Sistema encubierto de detección de humo para instituciones educativas.</p>
-      <p style="margin-top:8px;">Código abierto en <a href="https://github.com/mariosibrianjr-byte/vcdetection-backend" target="_blank" rel="noopener">GitHub</a> · © 2026 VCDetection</p>
+      <p style="margin-top:8px;">Código abierto en <a href="https://github.com/mariosibrianjr-byte/vcdetection-backend"
+          target="_blank" rel="noopener">GitHub</a> · © 2026 VCDetection</p>
     </div>
   </footer>
 
 </body>
+
 </html>
