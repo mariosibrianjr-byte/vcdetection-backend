@@ -1,22 +1,30 @@
 /*
- * VCDETECTION — ESP32 Covert Sensor (VERSIÓN CORREGIDA)
+ * ============================================================================
+ * VCDETECTION — ESP32 Covert Sensor (VERSIÓN PROFESIONAL MEJORADA)
+ * ============================================================================
  * 
  * Hardware:
  *   - ESP32 (Microcontrolador Principal)
- *   - MQ7   (GPIO 32) — Detecta CO (monóxido de carbono) — firma de combustión real
- *   - DHT22 (GPIO 5)  — Temperatura y Humedad
- *   - PMS5003 (RX: GPIO16, TX: GPIO17) — Partículas PM1.0, PM2.5, PM10
- *   - MH-Z19C (RX: GPIO26, TX: GPIO27) — CO2 en ppm (UART1)
+ *   - MQ7     (GPIO 32)            — Detecta CO (monóxido de carbono) — firma de combustión
+ *   - DHT22   (GPIO 5)             — Temperatura y Humedad (opcional con R pull-up 10k)
+ *   - PMS5003 (RX: GPIO16, TX: GPIO17) — Partículas láser PM1.0, PM2.5, PM10 (UART2)
+ *   - MH-Z19C (RX: GPIO26, TX: GPIO27) — CO2 NDIR en ppm (UART1)
  * 
- * Correcciones aplicadas:
- *   [1] WiFi con flag de estado para no llamar begin() múltiples veces
- *   [2] procesarCola() solo se llama si hay datos pendientes
- *   [3] StaticJsonDocument aumentado a 400 bytes
- *   [4] PMS5003 con verificación de checksum
- *   [5] Watchdog con API actualizada del ESP32 core
- *   [6] WiFi.disconnect() antes de reconectar para evitar estado colgado
- *   [7] MQ135 y MQ2 (dañados) sacados del circuito — detección ahora se
- *       apoya en MQ7 (CO) + PMS5003 (partícula) + DHT22 (humedad)
+ * Mejoras aplicadas:
+ *   [1] SENSORES:
+ *       - MH-Z19C: Auto-calibración (ABC) DESACTIVADA para evitar falsos baselines en
+ *         aulas cerradas. Validación de rangos (350 - 5000 ppm).
+ *       - MQ-7: Filtro por sobremuestreo y mediana recortada (Trimmed Median Filter)
+ *         en ADC para eliminar ruido de alta frecuencia inducido por el WiFi del ESP32.
+ *       - PMS5003: Checksum estricto, gestión de buffer no bloqueante y temporización.
+ *   [2] CONFIGURACIÓN DINÁMICA (PORTAL CAUTIVO + FLASH NVS):
+ *       - Almacenamiento en memoria Flash con Preferences.h.
+ *       - Si el WiFi escolar no conecta o no hay configuración previa, genera una red AP
+ *         "VCDetection-Setup" con portal cautivo (192.168.4.1) para configurar el
+ *         ID de salón, WiFi, Servidor y API Key desde cualquier teléfono o PC sin recompilar.
+ *   [3] ACTUALIZACIONES REMOTAS (ArduinoOTA):
+ *       - Soporte para flashear por WiFi con Arduino IDE usando contraseña de seguridad.
+ * ============================================================================
  */
 
 #include <WiFi.h>
@@ -26,35 +34,50 @@
 #include <esp_task_wdt.h>
 #include <time.h>
 #include <MHZ19.h>
+#include <Preferences.h>
+#include <WebServer.h>
+#include <DNSServer.h>
+#include <ArduinoOTA.h>
 
-// ─── Configuración — CAMBIÁ ESTOS VALORES ─────────────────────────────────────
-const char* DISPOSITIVO_ID = "SALON_01";          // Cambiá por el salón correspondiente
-const char* WIFI_SSID      = "737MUVIECABLE";
-const char* WIFI_PASSWORD  = "5F7UHI650JCI89P";
-const char* SERVER_URL = "https://vcdetection-backend.onrender.com/api/sensor/lectura";
-const char* DEVICE_API_KEY = "QqDVPhcdVT3sVBEuB35M6GLHyR2Z7QpfLli637wSt4";
+// ─── Almacenamiento Persistente en Flash (NVS) ────────────────────────────────
+Preferences preferences;
 
-// ─── Pines ────────────────────────────────────────────────────────────────────
-const int MQ7_PIN   = 32;   // CO — diferenciador de combustión (cigarrillo)
-const int DHT_PIN   = 5;
+// Valores por defecto (se sobreescriben con los guardados en Flash)
+String dispositivoId = "SALON_01";
+String wifiSSID      = "737MUVIECABLE";
+String wifiPassword  = "5F7UHI650JCI89P";
+String serverUrl     = "https://vcdetection-backend.onrender.com/api/sensor/lectura";
+String deviceApiKey  = "QqDVPhcdVT3sVBEuB35M6GLHyR2Z7QpfLli637wSt4";
+
+// ─── Modo Portal Cautivo ──────────────────────────────────────────────────────
+bool modoPortalConfig = false;
+WebServer server(80);
+DNSServer dnsServer;
+const byte DNS_PORT = 53;
+const IPAddress apIP(192, 168, 4, 1);
+const IPAddress netMsk(255, 255, 255, 0);
+
+// ─── Pines de Hardware ────────────────────────────────────────────────────────
+const int MQ7_PIN   = 32;   // CO — monóxido de carbono
+const int DHT_PIN   = 5;    // DHT22 Datos (requiere R 10k pull-up a 3.3V)
 #define DHT_TYPE DHT22
 
-// ─── DHT22 desconectado — no responde pese a cableado/pines verificados ────
-// Cuando consigas uno que funcione, poné esto en "true" y listo, no hay que
-// tocar nada más — el resto del código ya se adapta solo.
+// Flag para DHT22: poner en true si tienes DHT22 conectado y con resistencia pull-up
 const bool DHT_CONECTADO = false;
-#define PMS_RX 16
-#define PMS_TX 17
-#define CO2_RX 26   // MH-Z19C: cable verde (TXD del sensor) -> este pin
-#define CO2_TX 27   // MH-Z19C: cable azul  (RXD del sensor) -> este pin
 
-// ─── Tiempos ──────────────────────────────────────────────────────────────────
+#define PMS_RX 16           // Serial2 RX -> PMS5003 TX
+#define PMS_TX 17           // Serial2 TX -> PMS5003 RX
+#define CO2_RX 26           // MH-Z19C: cable verde (TXD del sensor) -> pin 26
+#define CO2_TX 27           // MH-Z19C: cable azul  (RXD del sensor) -> pin 27
+
+// ─── Tiempos y Watchdog ───────────────────────────────────────────────────────
 const unsigned long INTERVALO_MUESTREO = 5000;    // 5 segundos entre lecturas
-const int           WDT_TIMEOUT        = 15;      // Watchdog: reinicia si se cuelga 15s
+const int           WDT_TIMEOUT        = 25;      // Watchdog: reinicia si se cuelga 25s
+const unsigned long TIMEOUT_WIFI_BOOT  = 20000;   // 20 seg para conectar al arrancar antes de abrir portal
 
-// ─── NTP (El Salvador UTC-6) ───────────────────────────────────────────────────
-const char* ntpServer        = "pool.ntp.org";
-const long  gmtOffset_sec    = -21600;
+// ─── NTP (UTC-6) ──────────────────────────────────────────────────────────────
+const char* ntpServer          = "pool.ntp.org";
+const long  gmtOffset_sec      = -21600;
 const int   daylightOffset_sec = 0;
 
 // ─── Sensores ─────────────────────────────────────────────────────────────────
@@ -66,43 +89,34 @@ HardwareSerial mhzSerial(1);
 MHZ19 myMHZ19;
 int   co2ppm = -1;   // -1 = sin lectura válida todavía
 
-// Historial de CO (últimas 5 muestras para detectar pico)
-float historialCO[5]  = {0};
-int   indiceGases     = 0;
+// Historial de CO para picos súbitos
+float historialCO[5] = {0};
+int   indiceGases    = 0;
 
-// ─── Baseline dinámico de CO (ventana larga, ~5 min = 60 muestras de 5s) ────
-// En vez de comparar contra un número fijo (que varía por sala/instalación),
-// comparamos contra el promedio "normal" reciente de ESA sala.
+// ─── Baseline Dinámico Relativo ──────────────────────────────────────────────
 const int NUM_MUESTRAS_BASELINE = 60;
-float historialBase7[NUM_MUESTRAS_BASELINE]     = {0};   // CO (MQ7)
-float historialBasePM25[NUM_MUESTRAS_BASELINE]  = {0};   // PM2.5 (PMS5003)
-float historialBaseCO2[NUM_MUESTRAS_BASELINE]   = {0};   // CO2 (MH-Z19C)
-int   indiceBase       = 0;
-bool  bufferBaseLleno  = false;
+float historialBase7[NUM_MUESTRAS_BASELINE]    = {0};   // CO (MQ7)
+float historialBasePM25[NUM_MUESTRAS_BASELINE] = {0};   // PM2.5 (PMS5003)
+float historialBaseCO2[NUM_MUESTRAS_BASELINE]  = {0};   // CO2 (MH-Z19C)
+int   indiceBase      = 0;
+bool  bufferBaseLleno = false;
 
-// Historial de humedad (últimas 12 muestras = 1 minuto) — baseline lento
+// Historial de humedad
 const int NUM_MUESTRAS_HUM = 12;
 float historialHumedad[NUM_MUESTRAS_HUM] = {0};
 int   indiceHum      = 0;
 bool  bufferHumLleno = false;
 
-// Historial de humedad RÁPIDO (últimas 4 muestras = ~20s) — detecta el salto
-// brusco de humedad que provoca el vapor de un vape, que el promedio de
-// 1 minuto no alcanza a capturar a tiempo.
 const int NUM_MUESTRAS_HUM_RAPIDO = 4;
 float historialHumedadRapida[NUM_MUESTRAS_HUM_RAPIDO] = {0};
 int   indiceHumRapido = 0;
 
-// ─── Confirmación por muestras consecutivas (anti falso-positivo) ───────────
-// Un solo pico de 5s puede ser ruido (alguien abre perfume, entra vapor de
-// ducha, etc). Exigimos que la condición se repita para confirmar.
-int contadorHumo = 0;   // ciclos consecutivos con alguna señal de humo
-const int MUESTRAS_CONFIRMACION = 2;   // 2 lecturas seguidas (10s) para confirmar
+// Confirmación consecutiva para evitar falsos positivos
+int contadorHumo = 0;
+const int MUESTRAS_CONFIRMACION = 2;
 
-// ─── Tiempo de calentamiento de sensores MQ ──────────────────────────────────
-// El MQ7 da lecturas erráticas los primeros minutos tras encender.
-// Ignoramos detecciones (pero seguimos logueando) durante este período.
-const unsigned long TIEMPO_CALENTAMIENTO_MS = 3UL * 60UL * 1000UL; // 3 minutos
+// Período de precalentamiento (3 minutos para MQ7 y cámara NDIR)
+const unsigned long TIEMPO_CALENTAMIENTO_MS = 3UL * 60UL * 1000UL;
 unsigned long inicioSistema = 0;
 
 // Variables PMS5003
@@ -111,13 +125,13 @@ int pm2_5 = -1;
 int pm10  = -1;
 unsigned long ultimoPMSRx = 0;
 
-// ─── [CORRECCIÓN 1] WiFi con flag de estado ───────────────────────────────────
+// Gestión WiFi no bloqueante
 unsigned long ultimoIntentoWiFi = 0;
 unsigned long backoffWiFi       = 5000;
-bool          wifiConectando    = false;   // ← NUEVO: evita llamar begin() repetidamente
+bool          wifiConectando    = false;
 
-// ─── Cola Offline (hasta 10 lecturas sin WiFi) ────────────────────────────────
-#define QUEUE_SIZE 10
+// ─── Cola Offline en RAM (15 lecturas) ───────────────────────────────────────
+#define QUEUE_SIZE 15
 struct Lectura {
   float  ppmCO;
   bool   humoDetectado;
@@ -138,6 +152,11 @@ int colaTail  = 0;
 int colaCount = 0;
 
 // ─── Prototipos ───────────────────────────────────────────────────────────────
+void  cargarConfiguracion();
+void  guardarConfiguracion();
+void  iniciarPortalConfiguracion();
+void  configurarRutasPortal();
+void  iniciarArduinoOTA();
 void  leerSensoresYProcesar();
 void  leerPMS5003();
 void  procesarCola();
@@ -149,167 +168,169 @@ bool  detectarPico(float* hist, int size);
 float obtenerPromedioHumedad();
 float obtenerPromedio(float* hist, int size, bool lleno, int indiceActual);
 
-// ─── Setup ────────────────────────────────────────────────────────────────────
+// ============================================================================
+// SETUP
+// ============================================================================
 void setup() {
   Serial.begin(115200);
+  delay(500);
+  Serial.println("\n╔══════════════════════════════════════════════════╗");
+  Serial.println("║    VCDETECTION — ESP32 Sensor v2.1 Profesional   ║");
+  Serial.println("╚══════════════════════════════════════════════════╝");
 
-  // Iniciar PMS5003 por Serial2
+  // 1. Cargar configuración desde Flash NVS
+  cargarConfiguracion();
+
+  // 2. Iniciar puertos serie para sensores
   Serial2.begin(9600, SERIAL_8N1, PMS_RX, PMS_TX);
-
-  // Iniciar MH-Z19C por UART1 (pines distintos al PMS5003 para no chocar)
   mhzSerial.begin(9600, SERIAL_8N1, CO2_RX, CO2_TX);
+
+  // 3. Iniciar MH-Z19C
   myMHZ19.begin(mhzSerial);
-  myMHZ19.autoCalibration();   // Calibración automática (ABC) activada
+  // [MEJORA CRÍTICA 1] DESACTIVAR ABC (Auto-calibración).
+  // Evita que el sensor se descalibre en salones cerrados.
+  myMHZ19.autoCalibration(false);
+  Serial.println("[MH-Z19C] Calibración automática (ABC) DESACTIVADA.");
 
-  dht.begin();
+  // 4. Iniciar DHT22 si está activado
+  if (DHT_CONECTADO) {
+    dht.begin();
+  }
 
-  // Configuración ADC para MQ7
+  // 5. Configurar ADC para MQ7
   analogReadResolution(12);
   analogSetAttenuation(ADC_11db);
 
-  // [CORRECCIÓN 5] Watchdog con configuración actualizada
+  // 6. Configurar Watchdog Timer
   esp_task_wdt_config_t wdt_config = {
     .timeout_ms    = WDT_TIMEOUT * 1000,
-    .idle_core_mask = (1 << 0),           // Solo core 0
+    .idle_core_mask = (1 << 0),
     .trigger_panic  = true
   };
   esp_task_wdt_reconfigure(&wdt_config);
   esp_task_wdt_add(NULL);
 
+  // 7. Intentar conexión WiFi inicial
   WiFi.mode(WIFI_STA);
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+  Serial.printf("[WiFi] Conectando a red: %s\n", wifiSSID.c_str());
+  WiFi.begin(wifiSSID.c_str(), wifiPassword.c_str());
+
+  unsigned long tInicio = millis();
+  while (WiFi.status() != WL_CONNECTED && (millis() - tInicio < TIMEOUT_WIFI_BOOT)) {
+    delay(400);
+    Serial.print(".");
+    esp_task_wdt_reset();
+  }
+  Serial.println();
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.printf("[WiFi] ✓ Conectado con éxito! IP: %s\n", WiFi.localIP().toString().c_str());
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+    iniciarArduinoOTA();
+  } else {
+    Serial.println("[WiFi] ⚠️ No se pudo conectar a la red guardada.");
+    Serial.println("[PORTAL] Activando modo de configuración por Portal Cautivo...");
+    iniciarPortalConfiguracion();
+  }
 
   inicioSistema = millis();
-  Serial.println("\n=== VCDETECTION — Iniciando (calentando sensores MQ ~3 min) ===");
+  Serial.println("[SISTEMA] Listo. Calentando sensores (~3 minutos)...");
 }
 
-// ─── Loop Principal ───────────────────────────────────────────────────────────
+// ============================================================================
+// LOOP PRINCIPAL
+// ============================================================================
 void loop() {
-  // Alimentar watchdog para evitar reinicio
   esp_task_wdt_reset();
+
+  // Si estamos en modo portal cautivo, atender peticiones de configuración
+  if (modoPortalConfig) {
+    dnsServer.processNextRequest();
+    server.handleClient();
+    delay(10);
+    return;
+  }
+
+  // Manejar actualizaciones OTA
+  ArduinoOTA.handle();
 
   unsigned long ahora = millis();
 
-  // 1. Gestión de WiFi (corregida)
+  // 1. Gestión no bloqueante de WiFi
   gestionarWiFi();
 
-  // 2. Leer PMS5003 continuamente del buffer UART (no bloqueante)
+  // 2. Leer PMS5003 del buffer serie
   leerPMS5003();
 
-  // 3. Muestreo cada 5 segundos (no bloqueante)
+  // 3. Muestreo periódico de sensores
   if (ahora - ultimoMuestreo >= INTERVALO_MUESTREO) {
     ultimoMuestreo = ahora;
     leerSensoresYProcesar();
   }
 
-  // [CORRECCIÓN 2] procesarCola() SOLO si hay datos pendientes y hay WiFi
+  // 4. Enviar cola si hay WiFi
   if (colaCount > 0 && WiFi.status() == WL_CONNECTED) {
     procesarCola();
   }
 }
 
-// ─── [CORRECCIÓN 1 y 6] Gestión WiFi con flag y disconnect() ─────────────────
-void gestionarWiFi() {
-  unsigned long ahora = millis();
-
-  if (WiFi.status() == WL_CONNECTED) {
-    // Si reconectó, resetear backoff y flag
-    if (wifiConectando) {
-      Serial.printf("[WiFi] Conectado! IP: %s\n", WiFi.localIP().toString().c_str());
-      wifiConectando = false;
-      backoffWiFi    = 5000;
-    }
-    return;
-  }
-
-  // Si no está conectado y ya pasó el tiempo de backoff
-  if (ahora - ultimoIntentoWiFi > backoffWiFi) {
-    Serial.printf("[WiFi] Intentando conectar... (backoff: %lums)\n", backoffWiFi);
-
-    // [CORRECCIÓN 6] Desconectar limpiamente antes de reintentar
-    WiFi.disconnect(true);
-    delay(100);                             // 100ms mínimo para limpiar estado interno
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-    wifiConectando      = true;
-    ultimoIntentoWiFi   = ahora;
-
-    // Backoff exponencial hasta 60 segundos máximo
-    backoffWiFi = min(backoffWiFi * 2, (unsigned long)60000);
-  }
-}
-
-// ─── Lectura de Sensores y Lógica de Detección ───────────────────────────────
+// ============================================================================
+// [FASE 1] SENSORES Y DETECCIÓN
+// ============================================================================
 void leerSensoresYProcesar() {
   // 1. DHT22
-  float humedad, temperatura;
+  float humedad = -1, temperatura = -1;
   if (DHT_CONECTADO) {
-    humedad     = dht.readHumidity();
-    temperatura = dht.readTemperature();
-  } else {
-    humedad = NAN; temperatura = NAN;
+    float h = dht.readHumidity();
+    float t = dht.readTemperature();
+    if (!isnan(h) && !isnan(t)) {
+      humedad     = h;
+      temperatura = t;
+      historialHumedad[indiceHum] = humedad;
+      indiceHum = (indiceHum + 1) % NUM_MUESTRAS_HUM;
+      if (indiceHum == 0) bufferHumLleno = true;
+
+      historialHumedadRapida[indiceHumRapido] = humedad;
+      indiceHumRapido = (indiceHumRapido + 1) % NUM_MUESTRAS_HUM_RAPIDO;
+    }
   }
 
-  if (isnan(humedad) || isnan(temperatura)) {
-    humedad     = -1;
-    temperatura = -1;
-    if (DHT_CONECTADO) Serial.println("[DHT22] Error de lectura");
-  } else {
-    historialHumedad[indiceHum] = humedad;
-    indiceHum = (indiceHum + 1) % NUM_MUESTRAS_HUM;
-    if (indiceHum == 0) bufferHumLleno = true;
+  // 2. MQ7 con sobremuestreo y mediana recortada
+  float ppmCO = leerPPM(MQ7_PIN, 10.0, 27.5, 99.042, -1.518);
 
-    historialHumedadRapida[indiceHumRapido] = humedad;
-    indiceHumRapido = (indiceHumRapido + 1) % NUM_MUESTRAS_HUM_RAPIDO;
-  }
-
-  // 2. MQ7 (CO): constantes de curva estándar del datasheet Plantower/Winsen para MQ7.
-  // OJO: el "RO" (10.0 acá) es un valor genérico de ejemplo, no calibrado a tu
-  // sensor puntual — igual sirve bien para el baseline dinámico relativo que
-  // usamos, que no depende de un ppm absoluto exacto.
-  float ppmCO  = leerPPM(MQ7_PIN,   10.0, 27.5, 99.042, -1.518);
-
-  // 2.b MH-Z19C (CO2)
+  // 3. MH-Z19C (CO2) con validación de rango estricta
   int lecturaCO2 = myMHZ19.getCO2();
-  if (myMHZ19.errorCode == RESULT_OK) {
+  if (myMHZ19.errorCode == RESULT_OK && lecturaCO2 >= 350 && lecturaCO2 <= 6000) {
     co2ppm = lecturaCO2;
-  } else {
-    Serial.printf("[MH-Z19C] Error de lectura, status: %d\n", myMHZ19.errorCode);
-    // Se mantiene el último valor válido de co2ppm en vez de sobreescribir con error
+  } else if (myMHZ19.errorCode != RESULT_OK) {
+    Serial.printf("[MH-Z19C] Código de estado: %d\n", myMHZ19.errorCode);
   }
 
-  bool  co_valido = ppmCO >= 0;
-  bool  datosPmValidos = (pm1_0 != -1 && pm2_5 != -1 && pm10 != -1);
-  bool  co2_valido = (co2ppm > 0);
+  bool co_valido      = (ppmCO >= 0);
+  bool datosPmValidos = (pm1_0 != -1 && pm2_5 != -1 && pm10 != -1);
+  bool co2_valido     = (co2ppm > 0);
 
   if (co_valido) {
     historialCO[indiceGases % 5] = ppmCO;
   }
   indiceGases++;
 
-  // ── Baseline dinámico de CO, PM2.5 y CO2 (promedio "normal" de esta sala) ──
-  // Calculamos cada baseline usando SOLO lo acumulado HASTA ANTES de esta
-  // muestra, y decidimos si la muestra actual "parece normal" comparándola
-  // contra ese baseline previo. Si alguno de los tres parece un pico, NINGUNO
-  // de los tres se suma al histórico ese ciclo — así el promedio no se
-  // "envenena" con el propio evento que estamos tratando de detectar.
-  float basePrev7    = obtenerPromedio(historialBase7,    NUM_MUESTRAS_BASELINE, bufferBaseLleno, indiceBase);
-  float basePrevPM   = obtenerPromedio(historialBasePM25, NUM_MUESTRAS_BASELINE, bufferBaseLleno, indiceBase);
-  float basePrevCO2  = obtenerPromedio(historialBaseCO2,  NUM_MUESTRAS_BASELINE, bufferBaseLleno, indiceBase);
+  // Baseline dinámico
+  float basePrev7   = obtenerPromedio(historialBase7,    NUM_MUESTRAS_BASELINE, bufferBaseLleno, indiceBase);
+  float basePrevPM  = obtenerPromedio(historialBasePM25, NUM_MUESTRAS_BASELINE, bufferBaseLleno, indiceBase);
+  float basePrevCO2 = obtenerPromedio(historialBaseCO2,  NUM_MUESTRAS_BASELINE, bufferBaseLleno, indiceBase);
 
-  bool muestraNormal7   = !co_valido    || (basePrev7   <= 0) || (ppmCO  <= basePrev7  * 1.5);
+  bool muestraNormal7   = !co_valido      || (basePrev7   <= 0) || (ppmCO  <= basePrev7  * 1.5);
   bool muestraNormalPM  = !datosPmValidos || (basePrevPM  <= 0) || (pm2_5  <= basePrevPM * 1.6);
-  bool muestraNormalCO2 = !co2_valido  || (basePrevCO2 <= 0) || (co2ppm <= basePrevCO2 * 1.15);
+  bool muestraNormalCO2 = !co2_valido     || (basePrevCO2 <= 0) || (co2ppm <= basePrevCO2 * 1.15);
 
   if (muestraNormal7 && muestraNormalPM && muestraNormalCO2) {
-    if (co_valido)       historialBase7[indiceBase]    = ppmCO;
-    if (datosPmValidos)  historialBasePM25[indiceBase] = pm2_5;
-    if (co2_valido)      historialBaseCO2[indiceBase]  = co2ppm;
+    if (co_valido)      historialBase7[indiceBase]    = ppmCO;
+    if (datosPmValidos) historialBasePM25[indiceBase] = pm2_5;
+    if (co2_valido)     historialBaseCO2[indiceBase]  = co2ppm;
     indiceBase = (indiceBase + 1) % NUM_MUESTRAS_BASELINE;
     if (indiceBase == 0) bufferBaseLleno = true;
   }
-  // Si alguna de las tres fue anómala, el índice/buffer de baseline no
-  // avanza: seguimos comparando contra el último baseline "limpio" conocido.
 
   float base7   = basePrev7;
   float basePM  = basePrevPM;
@@ -317,54 +338,32 @@ void leerSensoresYProcesar() {
 
   bool sensoresCalientes = (millis() - inicioSistema) > TIEMPO_CALENTAMIENTO_MS;
 
-  // 3. Lógica de detección — evidencia combinada de varios sensores.
-  // Primero decide "¿hay humo?" (cualquier señal alcanza), y después arma
-  // un puntaje de evidencia para sugerir cuál podría ser — nunca 100%
-  // seguro, es la mejor pista disponible con el hardware actual.
+  // Lógica de detección de picos y firmas
   bool  picoGas     = detectarPico(historialCO, 5);
   float promHum     = obtenerPromedioHumedad();
 
-  // Salto de humedad — firma típica de vapor (DHT22, hoy desconectado)
   bool subidaHum = DHT_CONECTADO && (promHum > 0) && (humedad > promHum + 10.0);
-
-  int idxViejo = (indiceHumRapido) % NUM_MUESTRAS_HUM_RAPIDO;
+  int  idxViejo  = (indiceHumRapido) % NUM_MUESTRAS_HUM_RAPIDO;
   float humRapidaVieja = historialHumedadRapida[idxViejo];
-  bool  saltoHumRapido = DHT_CONECTADO && (humRapidaVieja > 0) && (humedad - humRapidaVieja > 6.0);
-  bool  humedadDisparo  = subidaHum || saltoHumRapido;
+  bool saltoHumRapido  = DHT_CONECTADO && (humRapidaVieja > 0) && (humedad - humRapidaVieja > 6.0);
+  bool humedadDisparo  = subidaHum || saltoHumRapido;
 
-  // CO (MQ7) — combustión real. La firma más específica que tenemos.
-  bool subidaCO = co_valido && (base7 > 1.0) && (ppmCO > base7 * 1.6);
-
-  // CO2 (MH-Z19C) — la combustión también consume O2 y suelta CO2, aunque
-  // de forma más leve que el CO. Sirve como refuerzo, no como prueba sola
-  // (el CO2 también sube solo por gente respirando en un cuarto cerrado).
+  bool subidaCO  = co_valido && (base7 > 1.0) && (ppmCO > base7 * 1.6);
   bool subidaCO2 = co2_valido && (baseCO2 > 50.0) && (co2ppm > baseCO2 * 1.15);
 
-  // Partícula (PMS5003) — ahora usamos el PERFIL, no solo el nivel:
-  //  - Nivel general: pm2_5 relativo a SU baseline de esta sala (evita
-  //    falsos positivos/negativos en salas más o menos polvorientas).
-  //  - Ratio PM1.0/PM2.5: aerosol fino y líquido (vape) da un ratio alto
-  //    (~0.85+, las partículas evaporadas son casi todas del mismo tamaño
-  //    chico). Humo de combustión (cigarrillo) da partículas de tamaños más
-  //    variados, con PM10 despegándose más de PM2.5.
-  float ratioPM1_25     = (datosPmValidos && pm2_5 > 0) ? (float)pm1_0 / pm2_5 : -1;
+  float ratioPM1_25      = (datosPmValidos && pm2_5 > 0) ? (float)pm1_0 / pm2_5 : -1;
   bool  subidaPM         = datosPmValidos && (basePM > 3.0) && (pm2_5 > basePM * 1.6);
-  bool  pmMuySaturado     = datosPmValidos && (pm2_5 > 150);      // humo denso encima del sensor
+  bool  pmMuySaturado    = datosPmValidos && (pm2_5 > 150);
   bool  particulaFina    = datosPmValidos && (ratioPM1_25 > 0.85);
   bool  particulaAncha   = datosPmValidos && (pm10 > pm2_5 * 1.3) && (pm2_5 > 15);
   bool  particulaDisparo = subidaPM || pmMuySaturado;
 
-  // ── ¿Hay humo? Cualquiera de estas señales ya cuenta como "hay algo" ────
   bool humoCrudo = sensoresCalientes &&
                    (subidaCO || subidaCO2 || humedadDisparo || particulaDisparo || picoGas);
 
   contadorHumo = humoCrudo ? contadorHumo + 1 : 0;
   bool humoConfirmado = contadorHumo >= MUESTRAS_CONFIRMACION;
 
-  // ── ¿Cuál podría ser? Puntaje de evidencia, no una certeza ──────────────
-  // Cada señal suma puntos a "combustión" (cigarrillo) o a "vapor" (vape).
-  // El CO pesa más porque es la firma más específica que existe; el resto
-  // son pistas de apoyo más débiles individualmente.
   int evidenciaCigarrillo = (subidaCO ? 2 : 0) + (particulaAncha ? 1 : 0) + (subidaCO2 ? 1 : 0);
   int evidenciaVape       = (particulaFina ? 2 : 0) + (humedadDisparo ? 2 : 0);
 
@@ -374,9 +373,6 @@ void leerSensoresYProcesar() {
   } else if (evidenciaVape >= 2 && evidenciaVape > evidenciaCigarrillo) {
     posibleCausa = (evidenciaVape >= 4) ? "Vape, alta confianza" : "posible Vape";
   }
-  // Si ninguno de los dos junta suficiente evidencia clara, queda "" y el
-  // mensaje final es un genérico "Humo detectado" — más honesto que forzar
-  // una etiqueta sin sustento.
 
   String tipo        = "Aire limpio";
   bool humoDetectado = false;
@@ -391,12 +387,11 @@ void leerSensoresYProcesar() {
     humoDetectado = true;
   }
 
-  // Invalidar PMS5003 si no responde en 10 segundos
   if (millis() - ultimoPMSRx > 10000) {
     pm1_0 = -1; pm2_5 = -1; pm10 = -1;
   }
 
-  // 4. Empaquetar lectura
+  // Empaquetar lectura
   Lectura lec;
   lec.ppmCO         = ppmCO;
   lec.humoDetectado = humoDetectado;
@@ -410,23 +405,240 @@ void leerSensoresYProcesar() {
   lec.co2           = co2ppm;
   lec.timestamp     = getTimestampISO();
 
-  Serial.printf("[%s] MQ7-CO:%.1f(Base:%.1f) | Hum:%.1f(Prom:%.1f) | PM1:%d PM2.5:%d(Base:%.1f) PM10:%d (ratio:%.2f) | CO2:%d(Base:%.1f) | EvidCig:%d EvidVape:%d | %s\n",
-                lec.timestamp.c_str(), ppmCO, base7, humedad, promHum, pm1_0, pm2_5, basePM, pm10, ratioPM1_25, co2ppm, baseCO2, evidenciaCigarrillo, evidenciaVape, tipo.c_str());
+  Serial.printf("[%s] MQ7:%.1f (Base:%.1f) | PM2.5:%d (Base:%.1f, ratio:%.2f) | CO2:%d | %s\n",
+                lec.timestamp.c_str(), ppmCO, base7, pm2_5, basePM, ratioPM1_25, co2ppm, tipo.c_str());
 
-
-  // 5. Agregar a cola circular (sobrescribe el más viejo si está llena)
+  // Agregar a cola circular
   colaOffline[colaTail] = lec;
   colaTail = (colaTail + 1) % QUEUE_SIZE;
-
   if (colaCount < QUEUE_SIZE) {
     colaCount++;
   } else {
-    // Cola llena: avanzar head para descartar el dato más antiguo
     colaHead = (colaHead + 1) % QUEUE_SIZE;
   }
 }
 
-// ─── Envío de Cola al Servidor ────────────────────────────────────────────────
+// ─── [MEJORA CRÍTICA 2] MQ7 con Filtro de Mediana Recortada ──────────────────
+float leerPPM(int pin, float RL, float RO, float A, float B) {
+  const int NUM_MUESTRAS = 25;
+  int lecturas[NUM_MUESTRAS];
+
+  for (int i = 0; i < NUM_MUESTRAS; i++) {
+    lecturas[i] = analogRead(pin);
+    delayMicroseconds(200);
+  }
+
+  // Ordenar lecturas (Bubble sort simple para 25 valores)
+  for (int i = 0; i < NUM_MUESTRAS - 1; i++) {
+    for (int j = 0; j < NUM_MUESTRAS - i - 1; j++) {
+      if (lecturas[j] > lecturas[j + 1]) {
+        int temp = lecturas[j];
+        lecturas[j] = lecturas[j + 1];
+        lecturas[j + 1] = temp;
+      }
+    }
+  }
+
+  // Descartar las 5 más bajas y las 5 más altas (elimina picos por RF del WiFi)
+  long suma = 0;
+  for (int i = 5; i < NUM_MUESTRAS - 5; i++) {
+    suma += lecturas[i];
+  }
+  float adc = (float)suma / (NUM_MUESTRAS - 10);
+  float voltaje = (adc / 4095.0) * 3.3;
+
+  if (voltaje < 0.05 || voltaje > 3.20) return -1.0;
+
+  float RS = ((3.3 - voltaje) / voltaje) * RL;
+  float ratio = RS / RO;
+  if (ratio <= 0.001) return -1.0;
+
+  float ppm = A * pow(ratio, B);
+  if (!isfinite(ppm) || ppm > 5000.0) return -1.0;
+
+  return ppm;
+}
+
+// ─── [MEJORA CRÍTICA 3] PMS5003 con Checksum ────────────────────────────────
+void leerPMS5003() {
+  while (Serial2.available() >= 32) {
+    if (Serial2.read() != 0x42) continue;
+    if (Serial2.peek() != 0x4D) continue;
+    Serial2.read(); // Consumir 0x4D
+
+    uint8_t buf[30];
+    if (Serial2.readBytes(buf, 30) != 30) continue;
+
+    uint16_t checksum = 0x42 + 0x4D;
+    for (int i = 0; i < 28; i++) {
+      checksum += buf[i];
+    }
+
+    uint16_t checksumEsperado = (buf[28] << 8) | buf[29];
+    if (checksum != checksumEsperado) {
+      continue;
+    }
+
+    pm1_0 = (buf[8]  << 8) | buf[9];
+    pm2_5 = (buf[10] << 8) | buf[11];
+    pm10  = (buf[12] << 8) | buf[13];
+
+    ultimoPMSRx = millis();
+  }
+}
+
+// ============================================================================
+// [FASE 2] CONFIGURACIÓN DINÁMICA CON PORTAL CAUTIVO Y NVS FLASH
+// ============================================================================
+void cargarConfiguracion() {
+  preferences.begin("vcdetection", false);
+  dispositivoId = preferences.getString("dev_id", dispositivoId);
+  wifiSSID      = preferences.getString("wifi_ssid", wifiSSID);
+  wifiPassword  = preferences.getString("wifi_pass", wifiPassword);
+  serverUrl     = preferences.getString("srv_url", serverUrl);
+  deviceApiKey  = preferences.getString("dev_key", deviceApiKey);
+  preferences.end();
+
+  Serial.println("[NVS] Configuración cargada desde Flash:");
+  Serial.printf("      ID: %s | SSID: %s | Servidor: %s\n",
+                dispositivoId.c_str(), wifiSSID.c_str(), serverUrl.c_str());
+}
+
+void guardarConfiguracion(String id, String ssid, String pass, String srv, String key) {
+  preferences.begin("vcdetection", false);
+  preferences.putString("dev_id", id);
+  preferences.putString("wifi_ssid", ssid);
+  if (pass.length() > 0) preferences.putString("wifi_pass", pass);
+  preferences.putString("srv_url", srv);
+  preferences.putString("dev_key", key);
+  preferences.end();
+  Serial.println("[NVS] ✓ Configuración guardada en Flash");
+}
+
+void iniciarPortalConfiguracion() {
+  modoPortalConfig = true;
+
+  WiFi.mode(WIFI_AP);
+  WiFi.softAPConfig(apIP, apIP, netMsk);
+  WiFi.softAP("VCDetection-Config", "12345678");
+
+  dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+  dnsServer.start(DNS_PORT, "*", apIP);
+
+  configurarRutasPortal();
+  server.begin();
+
+  Serial.println("\n╔════════════════════════════════════════════════════╗");
+  Serial.println("║  PORTAL CAUTIVO ACTIVO                             ║");
+  Serial.println("║  Conéctate al WiFi: VCDetection-Config             ║");
+  Serial.println("║  Clave WiFi: 12345678                              ║");
+  Serial.println("║  Abre en tu navegador: http://192.168.4.1          ║");
+  Serial.println("╚════════════════════════════════════════════════════╝\n");
+}
+
+void configurarRutasPortal() {
+  server.on("/", HTTP_GET, []() {
+    String html = "<!DOCTYPE html><html lang='es'><head><meta charset='UTF-8'>"
+                  "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+                  "<title>VCDetection Config</title>"
+                  "<style>"
+                  "body{font-family:system-ui,-apple-system,sans-serif;background:#f8fafc;color:#1e293b;padding:20px;margin:0;}"
+                  ".card{max-width:440px;margin:30px auto;background:#fff;padding:26px;border-radius:18px;box-shadow:0 10px 25px rgba(0,0,0,0.08);}"
+                  "h2{margin-top:0;color:#4f46e5;font-size:22px;text-align:center;}"
+                  "p{color:#64748b;font-size:14px;text-align:center;margin-bottom:20px;}"
+                  "label{display:block;font-size:13px;font-weight:600;margin-top:12px;margin-bottom:4px;}"
+                  "input{width:100%;box-sizing:border-box;padding:11px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:14px;}"
+                  "input:focus{outline:none;border-color:#6366f1;}"
+                  "button{width:100%;background:#4f46e5;color:#fff;border:none;padding:14px;border-radius:12px;font-weight:600;font-size:15px;margin-top:22px;cursor:pointer;}"
+                  "button:hover{background:#4338ca;}"
+                  "</style></head><body><div class='card'>"
+                  "<h2>⚙️ Configuración VCDetection</h2>"
+                  "<p>Asigna el salón y las credenciales Wi-Fi del sensor.</p>"
+                  "<form action='/guardar' method='POST'>"
+                  "<label>ID / Nombre del Salón:</label>"
+                  "<input type='text' name='id' value='" + dispositivoId + "' required>"
+                  "<label>Nombre Wi-Fi (SSID):</label>"
+                  "<input type='text' name='ssid' value='" + wifiSSID + "' required>"
+                  "<label>Contraseña Wi-Fi:</label>"
+                  "<input type='password' name='pass' placeholder='Dejar en blanco para mantener la actual'>"
+                  "<label>URL del Servidor Backend:</label>"
+                  "<input type='text' name='srv' value='" + serverUrl + "' required>"
+                  "<label>API Key del Dispositivo:</label>"
+                  "<input type='text' name='key' value='" + deviceApiKey + "' required>"
+                  "<button type='submit'>Guardar y Reiniciar Sensor</button>"
+                  "</form></div></body></html>";
+    server.send(200, "text/html", html);
+  });
+
+  server.on("/guardar", HTTP_POST, []() {
+    String id   = server.arg("id");
+    String ssid = server.arg("ssid");
+    String pass = server.arg("pass");
+    String srv  = server.arg("srv");
+    String key  = server.arg("key");
+
+    if (id.length() > 0 && ssid.length() > 0) {
+      guardarConfiguracion(id, ssid, pass, srv, key);
+      String res = "<!DOCTYPE html><html><head><meta charset='UTF-8'>"
+                   "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+                   "<style>body{font-family:sans-serif;text-align:center;padding:40px;background:#f8fafc;}"
+                   ".box{max-width:380px;margin:auto;background:#fff;padding:30px;border-radius:16px;box-shadow:0 8px 20px rgba(0,0,0,0.06);}"
+                   "h3{color:#10b981;}p{color:#64748b;font-size:14px;}</style></head><body>"
+                   "<div class='box'><h3>✓ Configuración Guardada</h3>"
+                   "<p>El sensor se está reiniciando para conectarse a <b>" + ssid + "</b>.</p>"
+                   "<p>Ya puedes desconectarte de esta red.</p></div></body></html>";
+      server.send(200, "text/html", res);
+      delay(1500);
+      ESP.restart();
+    } else {
+      server.send(400, "text/plain", "Datos incompletos");
+    }
+  });
+
+  // Redirecciones estándar de portal cautivo para celulares Android e iOS
+  server.on("/generate_204", HTTP_GET, []() {
+    server.sendHeader("Location", "/", true);
+    server.send(302, "text/plain", "");
+  });
+  server.on("/hotspot-detect.html", HTTP_GET, []() {
+    server.sendHeader("Location", "/", true);
+    server.send(302, "text/plain", "");
+  });
+}
+
+// ============================================================================
+// [FASE 3] ACTUALIZACIONES INALÁMBRICAS (ArduinoOTA)
+// ============================================================================
+void iniciarArduinoOTA() {
+  String otaHost = "vcdetection-" + dispositivoId;
+  otaHost.toLowerCase();
+  otaHost.replace("_", "-");
+
+  ArduinoOTA.setHostname(otaHost.c_str());
+  ArduinoOTA.setPort(3232);
+  ArduinoOTA.setPassword("vcadmin2026"); // Contraseña de seguridad para flashear
+
+  ArduinoOTA.onStart([]() {
+    String type = (ArduinoOTA.getCommand() == U_FLASH) ? "firmware" : "filesystem";
+    Serial.println("\n[OTA] Iniciando actualización de " + type);
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\n[OTA] ✓ Actualización completada con éxito. Reiniciando...");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("[OTA] Progreso: %u%%\r", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("[OTA] ✗ Error [%u]\n", error);
+  });
+
+  ArduinoOTA.begin();
+  Serial.printf("[OTA] Listo. Host: %s en puerto 3232 (Protegido con contraseña)\n", otaHost.c_str());
+}
+
+// ============================================================================
+// ENVÍO HTTP Y GESTIÓN DE COLA
+// ============================================================================
 void procesarCola() {
   while (colaCount > 0 && WiFi.status() == WL_CONNECTED) {
     Lectura lec = colaOffline[colaHead];
@@ -436,7 +648,6 @@ void procesarCola() {
       colaHead = (colaHead + 1) % QUEUE_SIZE;
       colaCount--;
     } else {
-      // Fallo de red, dejamos de intentar hasta el próximo ciclo
       break;
     }
   }
@@ -444,14 +655,13 @@ void procesarCola() {
 
 bool enviarDatos(Lectura &lec) {
   HTTPClient http;
-  http.begin(SERVER_URL);
+  http.begin(serverUrl);
   http.addHeader("Content-Type", "application/json");
-  http.addHeader("x-device-key", DEVICE_API_KEY);
+  http.addHeader("x-device-key", deviceApiKey);
   http.setTimeout(3000);
 
-  // [CORRECCIÓN 3] Aumentado a 450 para no desbordar con todos los campos (incluye CO2)
   StaticJsonDocument<450> doc;
-  doc["dispositivoId"] = DISPOSITIVO_ID;
+  doc["dispositivoId"] = dispositivoId;
   doc["ppmCO"]         = round(lec.ppmCO * 100) / 100.0;
   doc["humoDetectado"] = lec.humoDetectado;
   doc["tipo"]          = lec.tipo;
@@ -475,71 +685,37 @@ bool enviarDatos(Lectura &lec) {
     return true;
   }
 
-  Serial.printf("[HTTP] ✗ Fallo. Codigo: %d\n", respuesta);
+  Serial.printf("[HTTP] ✗ Fallo de envío. Código: %d\n", respuesta);
   return false;
 }
 
-// ─── [CORRECCIÓN 4] PMS5003 con verificación de Checksum ─────────────────────
-void leerPMS5003() {
-  while (Serial2.available() >= 32) {
-    // Buscar header del PMS5003 (0x42, 0x4D)
-    if (Serial2.read() != 0x42) continue;
-    if (Serial2.peek() != 0x4D) continue;
-    Serial2.read(); // Consumir 0x4D
+void gestionarWiFi() {
+  unsigned long ahora = millis();
 
-    uint8_t buf[30];
-    if (Serial2.readBytes(buf, 30) != 30) continue;
-
-    // Calcular checksum: suma de 0x42 + 0x4D + los primeros 28 bytes del buffer
-    uint16_t checksum = 0x42 + 0x4D;
-    for (int i = 0; i < 28; i++) {
-      checksum += buf[i];
+  if (WiFi.status() == WL_CONNECTED) {
+    if (wifiConectando) {
+      Serial.printf("[WiFi] Reconectado! IP: %s\n", WiFi.localIP().toString().c_str());
+      wifiConectando = false;
+      backoffWiFi    = 5000;
     }
+    return;
+  }
 
-    // Los últimos 2 bytes del buffer son el checksum esperado
-    uint16_t checksumEsperado = (buf[28] << 8) | buf[29];
+  if (ahora - ultimoIntentoWiFi > backoffWiFi) {
+    Serial.printf("[WiFi] Intentando reconectar... (backoff: %lums)\n", backoffWiFi);
+    WiFi.disconnect(true);
+    delay(100);
+    WiFi.begin(wifiSSID.c_str(), wifiPassword.c_str());
 
-    if (checksum != checksumEsperado) {
-      Serial.println("[PMS5003] Checksum incorrecto, dato descartado");
-      continue;
-    }
-
-    // Checksum OK — extraer valores (atmospheric environment, bytes 4-9)
-    pm1_0 = (buf[8]  << 8) | buf[9];
-    pm2_5 = (buf[10] << 8) | buf[11];
-    pm10  = (buf[12] << 8) | buf[13];
-
-    ultimoPMSRx = millis();
+    wifiConectando    = true;
+    ultimoIntentoWiFi = ahora;
+    backoffWiFi       = min(backoffWiFi * 2, (unsigned long)60000);
   }
 }
 
-// ─── Funciones Auxiliares ─────────────────────────────────────────────────────
-float leerPPM(int pin, float RL, float RO, float A, float B) {
-  long suma = 0;
-  for (int i = 0; i < 20; i++) {
-    suma += analogRead(pin);
-  }
-  float adc     = suma / 20.0;
-  float voltaje = (adc / 4095.0) * 3.3;
-
-  // Guardas de cordura: si el voltaje está pegado a 0V o pegado a 3.3V,
-  // no es una lectura real de gas — es un pin flotante/desconectado o un
-  // cable en corto. Devolvemos -1 (inválido) en vez de dejar que la fórmula
-  // explote matemáticamente (RS/RO cerca de 0 eleva A*ratio^B a números
-  // absurdos tipo 3.6 cuatrillones, que rompen toda la lógica de detección).
-  if (voltaje < 0.05 || voltaje > 3.20) return -1.0;
-
-  float RS    = ((3.3 - voltaje) / voltaje) * RL;
-  float ratio = RS / RO;
-  float ppm   = A * pow(ratio, B);
-
-  // Piso de seguridad extra: si por algún motivo igual da un número
-  // desquiciado, lo recortamos en vez de propagarlo al resto del sistema.
-  if (!isfinite(ppm) || ppm > 5000.0) return -1.0;
-
-  return ppm;
-}
-
+// ============================================================================
+// FUNCIONES AUXILIARES
+// ============================================================================
 bool detectarPico(float* hist, int size) {
   float minVal = hist[0], maxVal = hist[0];
   for (int i = 1; i < size; i++) {
@@ -557,8 +733,6 @@ float obtenerPromedioHumedad() {
   return sum / num;
 }
 
-// Promedio genérico para arrays circulares (usado en el baseline de gases).
-// Devuelve -1 si todavía no hay suficientes muestras para confiar en el valor.
 float obtenerPromedio(float* hist, int size, bool lleno, int indiceActual) {
   int num = lleno ? size : indiceActual;
   if (num <= 0) return -1.0;

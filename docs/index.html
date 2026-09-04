@@ -4,25 +4,45 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VCDetection — Detección de vape y cigarrillo para colegios</title>
+  <title>VCDetection — Detección Inteligente de Vape y Cigarrillo para Colegios</title>
   <meta name="description"
-    content="Sistema encubierto de detección de humo de vape y cigarrillo para colegios. Sensores ESP32, alertas en tiempo real, notificaciones push y panel de monitoreo." />
-  <meta property="og:title" content="VCDetection" />
+    content="Sistema encubierto de detección de humo de vape y cigarrillo para instituciones educativas. Hardware IoT con ESP32, alertas en tiempo real, app móvil y panel de escritorio." />
+  <meta property="og:title" content="VCDetection — Detección de Vape y Humo para Colegios" />
   <meta property="og:description"
-    content="Detección inteligente de vape y cigarrillo en colegios. Alertas en tiempo real en tu celular y PC." />
+    content="Protege a tu institución educativa. Alertas inmediatas en celular y PC ante eventos de vapeo o tabaco." />
   <link rel="icon" type="image/png" href="favicon.png" />
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+
   <style>
     :root {
       --violeta: #7c3aed;
+      --violeta-oscuro: #6d28d9;
       --azul: #4f46e5;
+      --azul-suave: #6366f1;
       --verde: #10b981;
-      --gradiente: linear-gradient(135deg, #7c3aed 0%, #4f46e5 50%, #10b981 100%);
-      --texto: #1e293b;
-      --texto-suave: #64748b;
-      --fondo: #f7f8fc;
-      --blanco: #ffffff;
-      --borde: #eef0f6;
+      --verde-oscuro: #059669;
+      --ambar: #f59e0b;
       --rojo: #ef4444;
+      --rojo-suave: #fef2f2;
+      --gradiente: linear-gradient(135deg, #7c3aed 0%, #4f46e5 50%, #10b981 100%);
+      --gradiente-card: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+      --texto: #0f172a;
+      --texto-suave: #64748b;
+      --fondo: #f8fafc;
+      --blanco: #ffffff;
+      --borde: #e2e8f0;
+      --borde-luz: rgba(226, 232, 240, 0.8);
+      --sombra-sm: 0 4px 12px rgba(15, 23, 42, 0.05);
+      --sombra-md: 0 12px 32px rgba(15, 23, 42, 0.08);
+      --sombra-lg: 0 24px 50px rgba(79, 70, 229, 0.12);
+      --radius-lg: 20px;
+      --radius-md: 14px;
     }
 
     * {
@@ -36,50 +56,63 @@
     }
 
     body {
-      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
       background: var(--fondo);
       color: var(--texto);
       line-height: 1.6;
+      overflow-x: hidden;
     }
 
     .contenedor {
-      max-width: 1080px;
+      max-width: 1140px;
       margin: 0 auto;
       padding: 0 24px;
     }
 
-    /* ===== Navegación ===== */
+    /* ===== Barra de Navegación ===== */
     nav {
       position: sticky;
       top: 0;
-      z-index: 100;
-      background: rgba(255, 255, 255, .85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--borde);
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--borde-luz);
+      transition: all 0.3s ease;
     }
 
     .nav-inner {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      height: 64px;
+      height: 72px;
     }
 
     .logo {
       display: flex;
       align-items: center;
-      gap: 10px;
-      font-weight: 700;
-      font-size: 18px;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 20px;
       text-decoration: none;
       color: var(--texto);
+      letter-spacing: -0.5px;
     }
 
-    .logo svg,
     .logo img {
-      width: 30px;
-      height: 30px;
+      width: 34px;
+      height: 34px;
       object-fit: contain;
+    }
+
+    .logo-badge {
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--verde-oscuro);
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(16, 185, 129, 0.25);
     }
 
     .nav-links {
@@ -91,13 +124,50 @@
     .nav-links a {
       text-decoration: none;
       color: var(--texto-suave);
-      font-size: 15px;
-      font-weight: 500;
-      transition: color .2s;
+      font-size: 14.5px;
+      font-weight: 600;
+      transition: color 0.2s;
     }
 
     .nav-links a:hover {
       color: var(--azul);
+    }
+
+    /* Menú Hamburguesa */
+    .menu-toggle {
+      display: none;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      color: var(--texto);
+    }
+
+    .menu-toggle svg {
+      width: 26px;
+      height: 26px;
+      display: block;
+    }
+
+    .mobile-menu {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      padding: 20px 24px 28px;
+      background: white;
+      border-bottom: 1px solid var(--borde);
+    }
+
+    .mobile-menu.activo {
+      display: flex;
+    }
+
+    .mobile-menu a {
+      text-decoration: none;
+      color: var(--texto);
+      font-weight: 600;
+      font-size: 16px;
+      padding: 6px 0;
     }
 
     /* ===== Botones ===== */
@@ -106,93 +176,116 @@
       align-items: center;
       justify-content: center;
       gap: 10px;
-      padding: 14px 28px;
+      padding: 13px 26px;
       border-radius: 12px;
-      font-weight: 600;
-      font-size: 16px;
+      font-weight: 700;
+      font-size: 15px;
       text-decoration: none;
-      transition: transform .15s ease, box-shadow .15s ease;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       border: none;
       cursor: pointer;
     }
 
     .btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(99, 102, 241, .25);
     }
 
     .btn-primario {
       background: var(--gradiente);
       color: white;
-      box-shadow: 0 4px 14px rgba(124, 58, 237, .3);
+      box-shadow: 0 6px 20px rgba(124, 58, 237, 0.28);
+    }
+
+    .btn-primario:hover {
+      box-shadow: 0 10px 26px rgba(124, 58, 237, 0.38);
     }
 
     .btn-secundario {
       background: white;
-      color: var(--azul);
-      border: 1.5px solid #dbe0ee;
+      color: var(--texto);
+      border: 1.5px solid var(--borde);
+      box-shadow: var(--sombra-sm);
+    }
+
+    .btn-secundario:hover {
+      border-color: #cbd5e1;
+      background: #f8fafc;
     }
 
     .btn-sm {
-      padding: 9px 18px;
-      font-size: 14px;
+      padding: 8px 16px;
+      font-size: 13.5px;
       border-radius: 10px;
     }
 
-    /* ===== Hero ===== */
+    /* ===== Hero Section ===== */
     header.hero {
       position: relative;
       overflow: hidden;
-      padding: 90px 0 70px;
+      padding: 80px 0 70px;
     }
 
     .blob {
       position: absolute;
-      width: 520px;
-      height: 520px;
+      width: 550px;
+      height: 550px;
       border-radius: 50%;
-      filter: blur(120px);
-      opacity: .16;
+      filter: blur(130px);
+      opacity: 0.18;
       pointer-events: none;
+      z-index: 0;
     }
 
     .blob-a {
       background: var(--violeta);
-      top: -180px;
-      right: -80px;
+      top: -200px;
+      right: -100px;
     }
 
     .blob-b {
       background: var(--verde);
-      bottom: -220px;
-      left: -120px;
+      bottom: -240px;
+      left: -140px;
     }
 
     .hero-grid {
       display: grid;
-      grid-template-columns: 1.1fr .9fr;
-      gap: 56px;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 50px;
       align-items: center;
       position: relative;
+      z-index: 1;
     }
 
-    .badge {
-      display: inline-block;
-      background: linear-gradient(135deg, rgba(124, 58, 237, .12), rgba(16, 185, 129, .12));
-      color: var(--azul);
-      border: 1px solid rgba(79, 70, 229, .25);
-      padding: 6px 16px;
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: white;
+      border: 1px solid rgba(124, 58, 237, 0.2);
+      box-shadow: 0 2px 8px rgba(124, 58, 237, 0.08);
+      padding: 6px 14px;
       border-radius: 999px;
-      font-size: 13.5px;
-      font-weight: 600;
-      margin-bottom: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--azul);
+      margin-bottom: 22px;
+    }
+
+    .hero-pill i {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--verde);
+      box-shadow: 0 0 8px var(--verde);
     }
 
     h1 {
-      font-size: clamp(34px, 5vw, 52px);
+      font-size: clamp(34px, 4.4vw, 54px);
       line-height: 1.12;
-      letter-spacing: -1px;
-      margin-bottom: 20px;
+      letter-spacing: -1.2px;
+      font-weight: 800;
+      margin-bottom: 22px;
     }
 
     h1 span {
@@ -202,46 +295,62 @@
       color: transparent;
     }
 
-    .hero p.sub {
-      font-size: 19px;
+    p.sub {
+      font-size: 18.5px;
       color: var(--texto-suave);
-      max-width: 520px;
+      line-height: 1.6;
       margin-bottom: 34px;
+      max-width: 540px;
     }
 
     .hero-botones {
       display: flex;
       flex-wrap: wrap;
       gap: 14px;
+      margin-bottom: 28px;
     }
 
-    /* Tarjeta de alerta simulada */
-    .mock-zona {
+    .hero-garantias {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--texto-suave);
+    }
+
+    .hero-garantias span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hero-garantias svg {
+      color: var(--verde);
+    }
+
+    /* Mockup de Alerta Hero */
+    .hero-visual {
       display: flex;
       justify-content: center;
+      position: relative;
     }
 
-    .mock-alerta {
+    .mockup-alerta {
       background: white;
-      border-radius: 18px;
+      border-radius: var(--radius-lg);
       border: 1px solid var(--borde);
-      box-shadow: 0 24px 60px rgba(30, 41, 59, .12);
-      width: 340px;
+      box-shadow: var(--sombra-lg);
+      width: 360px;
       max-width: 100%;
       overflow: hidden;
-      animation: flotar 5s ease-in-out infinite;
+      animation: flotar 6s ease-in-out infinite;
+      position: relative;
     }
 
     @keyframes flotar {
-
-      0%,
-      100% {
-        transform: translateY(0);
-      }
-
-      50% {
-        transform: translateY(-10px);
-      }
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
     }
 
     .mock-franja {
@@ -249,307 +358,819 @@
       background: var(--gradiente);
     }
 
-    .mock-cuerpo {
-      padding: 20px 22px 22px;
-    }
-
-    .mock-top {
+    .mock-header {
+      padding: 16px 20px 10px;
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 14px;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--borde-luz);
     }
 
-    .mock-icono {
-      width: 42px;
-      height: 42px;
-      border-radius: 12px;
-      flex-shrink: 0;
-      background: #fef2f2;
-      display: grid;
-      place-items: center;
-    }
-
-    .mock-titulo {
+    .mock-status {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
       font-weight: 700;
-      font-size: 15.5px;
+      color: #059669;
     }
 
-    .mock-sub {
-      font-size: 13px;
+    .mock-status i {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: pulso 2s infinite;
+    }
+
+    @keyframes pulso {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.3); }
+    }
+
+    .mock-tiempo {
+      font-size: 11.5px;
       color: var(--texto-suave);
     }
 
-    .mock-stats {
+    .mock-cuerpo {
+      padding: 20px;
+    }
+
+    .mock-alerta-box {
+      background: #fef2f2;
+      border: 1px solid #fee2e2;
+      border-radius: 14px;
+      padding: 14px;
       display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 14px;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 18px;
     }
 
-    .chip {
-      font-size: 11.5px;
-      font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: #f4f5fb;
-      color: #475569;
-      border: 1px solid var(--borde);
-    }
-
-    .mock-enviado {
-      font-size: 12.5px;
-      color: #059669;
-      background: #ecfdf5;
-      border: 1px solid #d1fae5;
-      padding: 8px 12px;
+    .mock-icono-peligro {
+      width: 38px;
+      height: 38px;
       border-radius: 10px;
-      font-weight: 600;
+      background: #ef4444;
+      color: white;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
     }
 
-    /* ===== Secciones ===== */
+    .mock-alerta-info h4 {
+      font-size: 15px;
+      font-weight: 800;
+      color: #991b1b;
+      margin-bottom: 2px;
+    }
+
+    .mock-alerta-info p {
+      font-size: 13px;
+      color: #b91c1c;
+      font-weight: 500;
+    }
+
+    .mock-metricas {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .metrica-item {
+      background: #f8fafc;
+      border: 1px solid var(--borde);
+      border-radius: 10px;
+      padding: 10px 8px;
+      text-align: center;
+    }
+
+    .metrica-valor {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--texto);
+    }
+
+    .metrica-etiqueta {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: var(--texto-suave);
+    }
+
+    .mock-notif {
+      background: #f0fdf4;
+      border: 1px solid #dcfce7;
+      border-radius: 10px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #166534;
+    }
+
+    /* ===== Secciones Generales ===== */
     section {
-      padding: 76px 0;
+      padding: 80px 0;
+      position: relative;
     }
 
     .titulo-seccion {
       text-align: center;
-      max-width: 640px;
+      max-width: 680px;
       margin: 0 auto 52px;
     }
 
-    .titulo-seccion h2 {
-      font-size: clamp(26px, 3.4vw, 36px);
-      letter-spacing: -.5px;
+    .tag-seccion {
+      display: inline-block;
+      font-size: 12.5px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--azul);
+      background: rgba(79, 70, 229, 0.08);
+      padding: 5px 14px;
+      border-radius: 999px;
       margin-bottom: 12px;
+    }
+
+    .titulo-seccion h2 {
+      font-size: clamp(28px, 3.4vw, 40px);
+      letter-spacing: -0.8px;
+      font-weight: 800;
+      margin-bottom: 14px;
     }
 
     .titulo-seccion p {
       color: var(--texto-suave);
-      font-size: 17px;
+      font-size: 17.5px;
     }
 
-    /* Cómo funciona */
-    .pasos {
+    /* ===== SECCIÓN: SIMULADOR INTERACTIVO ===== */
+    .simulador-container {
+      background: white;
+      border: 1px solid var(--borde);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--sombra-md);
+      overflow: hidden;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 22px;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+
+    .sim-controles {
+      padding: 38px 34px;
+      background: #fafbfe;
+      border-right: 1px solid var(--borde);
+    }
+
+    .sim-controles h3 {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .sim-controles p.desc {
+      font-size: 14px;
+      color: var(--texto-suave);
+      margin-bottom: 24px;
+    }
+
+    .sim-escenarios {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .btn-escenario {
+      background: white;
+      border: 1.5px solid var(--borde);
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--texto);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .btn-escenario span.icono {
+      font-size: 20px;
+    }
+
+    .btn-escenario:hover {
+      border-color: var(--azul);
+      background: #f5f7ff;
+      transform: translateY(-2px);
+    }
+
+    .btn-escenario.activo {
+      border-color: var(--azul);
+      background: #eef2ff;
+      color: var(--azul);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+    }
+
+    .slider-grupo {
+      margin-bottom: 20px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13.5px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .slider-header span.valor {
+      color: var(--azul);
+      font-weight: 800;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 7px;
+      border-radius: 5px;
+      background: #e2e8f0;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--azul);
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.4);
+      transition: transform 0.1s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+
+    .sim-pantalla {
+      padding: 38px 34px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: white;
+    }
+
+    .sim-header-pantalla {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .sensor-estado-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .estado-verde {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+
+    .estado-rojo {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+      animation: alertBlink 1.5s infinite;
+    }
+
+    @keyframes alertBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    .sim-resultado-box {
+      border: 2px dashed var(--borde);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 24px;
+      transition: all 0.3s ease;
+    }
+
+    .sim-resultado-box.alerta-activa {
+      border: 2px solid #ef4444;
+      background: #fff5f5;
+    }
+
+    .sim-resultado-box h4 {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .sim-resultado-box p {
+      font-size: 14.5px;
+      color: var(--texto-suave);
+    }
+
+    .sim-graficas-resumen {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .gauge-mini {
+      background: #f8fafc;
+      border: 1px solid var(--borde);
+      border-radius: 12px;
+      padding: 12px 10px;
+      text-align: center;
+    }
+
+    .gauge-mini .g-num {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--texto);
+    }
+
+    .gauge-mini .g-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--texto-suave);
+    }
+
+    /* Notificación de Celular Simulada */
+    .sim-push-notif {
+      background: #0f172a;
+      color: white;
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .sim-push-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--gradiente);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .sim-push-text h5 {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 1px;
+    }
+
+    .sim-push-text p {
+      font-size: 11.5px;
+      color: #94a3b8;
+    }
+
+    /* ===== SECCIÓN: CÓMO FUNCIONA ===== */
+    .pasos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 24px;
       counter-reset: paso;
     }
 
-    .paso {
+    .paso-card {
       background: white;
       border: 1px solid var(--borde);
-      border-radius: 18px;
-      padding: 28px 24px;
+      border-radius: var(--radius-lg);
+      padding: 32px 26px;
       position: relative;
-      transition: transform .2s, box-shadow .2s;
+      transition: all 0.25s;
     }
 
-    .paso:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 14px 34px rgba(30, 41, 59, .08);
+    .paso-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--sombra-md);
     }
 
-    .paso::before {
+    .paso-card::before {
       counter-increment: paso;
       content: "0" counter(paso);
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 800;
       letter-spacing: 1px;
       background: var(--gradiente);
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
+      display: block;
+      margin-bottom: 14px;
     }
 
-    .paso h3 {
-      font-size: 17px;
-      margin: 8px 0 8px;
+    .paso-card h3 {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 10px;
     }
 
-    .paso p {
+    .paso-card p {
       font-size: 14.5px;
       color: var(--texto-suave);
     }
 
-    .sensores {
+    .chips-hardware {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 12px;
       justify-content: center;
-      margin-top: 44px;
+      margin-top: 48px;
     }
 
-    .sensor-chip {
+    .chip-hw {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 9px;
       background: white;
       border: 1px solid var(--borde);
+      padding: 10px 18px;
       border-radius: 999px;
-      padding: 9px 18px;
       font-size: 14px;
-      font-weight: 600;
-      color: #475569;
+      font-weight: 700;
+      color: #334155;
+      box-shadow: var(--sombra-sm);
     }
 
-    .sensor-chip i {
+    .chip-hw i {
       width: 8px;
       height: 8px;
       border-radius: 50%;
       background: var(--verde);
     }
 
-    /* Características */
-    .grid-caracs {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 22px;
+    /* ===== SECCIÓN: CALCULADORA DE COBERTURA ===== */
+    .calculadora-card {
+      background: var(--gradiente-card);
+      border: 1px solid var(--borde);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--sombra-md);
+      padding: 44px 38px;
+      max-width: 920px;
+      margin: 0 auto;
     }
 
-    .carac {
+    .calc-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 40px;
+      align-items: center;
+    }
+
+    .calc-inputs h3 {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .calc-inputs p {
+      font-size: 14.5px;
+      color: var(--texto-suave);
+      margin-bottom: 24px;
+    }
+
+    .calc-box-resultado {
       background: white;
       border: 1px solid var(--borde);
-      border-radius: 18px;
-      padding: 26px;
-      transition: transform .2s, box-shadow .2s;
+      border-radius: var(--radius-md);
+      padding: 28px;
+      text-align: center;
+      box-shadow: var(--sombra-sm);
     }
 
-    .carac:hover {
+    .calc-numero-grande {
+      font-size: 54px;
+      font-weight: 800;
+      line-height: 1;
+      background: var(--gradiente);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin-bottom: 6px;
+    }
+
+    .calc-label-grande {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--texto);
+      margin-bottom: 18px;
+    }
+
+    .calc-detalles {
+      text-align: left;
+      border-top: 1px solid var(--borde);
+      padding-top: 16px;
+      margin-top: 16px;
+      font-size: 13.5px;
+      color: var(--texto-suave);
+    }
+
+    .calc-detalles li {
+      margin-bottom: 6px;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .calc-detalles li::before {
+      content: "✓";
+      color: var(--verde);
+      font-weight: 800;
+    }
+
+    /* ===== SECCIÓN: CARACTERÍSTICAS ===== */
+    .caracs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 24px;
+    }
+
+    .carac-card {
+      background: white;
+      border: 1px solid var(--borde);
+      border-radius: var(--radius-lg);
+      padding: 30px 26px;
+      transition: all 0.2s;
+    }
+
+    .carac-card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 14px 34px rgba(30, 41, 59, .08);
+      box-shadow: var(--sombra-md);
+      border-color: #cbd5e1;
     }
 
     .carac-icono {
       width: 48px;
       height: 48px;
-      border-radius: 13px;
+      border-radius: 14px;
       display: grid;
       place-items: center;
-      margin-bottom: 16px;
-      background: linear-gradient(135deg, rgba(124, 58, 237, .1), rgba(16, 185, 129, .1));
+      margin-bottom: 18px;
     }
 
-    .carac h3 {
-      font-size: 16.5px;
-      margin-bottom: 6px;
+    .carac-card h3 {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 8px;
     }
 
-    .carac p {
+    .carac-card p {
       font-size: 14.5px;
       color: var(--texto-suave);
     }
 
-    /* Descargas */
+    /* ===== SECCIÓN: FAQ (ACORDEÓN) ===== */
+    .faq-lista {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .faq-item {
+      background: white;
+      border: 1px solid var(--borde);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .faq-item.abierto {
+      border-color: var(--azul);
+      box-shadow: var(--sombra-sm);
+    }
+
+    .faq-pregunta {
+      padding: 20px 24px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--texto);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+
+    .faq-pregunta svg {
+      transition: transform 0.25s ease;
+      color: var(--texto-suave);
+      flex-shrink: 0;
+    }
+
+    .faq-item.abierto .faq-pregunta svg {
+      transform: rotate(180deg);
+      color: var(--azul);
+    }
+
+    .faq-respuesta {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.3s ease;
+      padding: 0 24px;
+      color: var(--texto-suave);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .faq-item.abierto .faq-respuesta {
+      max-height: 250px;
+      padding: 0 24px 22px;
+    }
+
+    /* ===== SECCIÓN: DESCARGAS ===== */
     .descargas-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 26px;
-      max-width: 860px;
-      margin: 0 auto;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 30px;
+      max-width: 900px;
+      margin: 0 auto 40px;
     }
 
     .tarjeta-descarga {
       background: white;
       border: 1px solid var(--borde);
-      border-radius: 22px;
-      padding: 36px 30px;
+      border-radius: var(--radius-lg);
+      padding: 40px 32px;
       text-align: center;
+      box-shadow: var(--sombra-sm);
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 8px;
-      transition: transform .2s, box-shadow .2s;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
 
     .tarjeta-descarga:hover {
       transform: translateY(-5px);
-      box-shadow: 0 20px 44px rgba(30, 41, 59, .1);
+      box-shadow: var(--sombra-md);
     }
 
-    .plataforma-icono {
-      width: 64px;
-      height: 64px;
-      border-radius: 18px;
+    .plataforma-badge {
+      width: 70px;
+      height: 70px;
+      border-radius: 20px;
       display: grid;
       place-items: center;
-      margin-bottom: 10px;
-    }
-
-    .icono-android {
-      background: linear-gradient(135deg, #ecfdf5, #d1fae5);
-    }
-
-    .icono-windows {
-      background: linear-gradient(135deg, #eef2ff, #ede9fe);
+      margin-bottom: 16px;
     }
 
     .tarjeta-descarga h3 {
-      font-size: 20px;
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 4px;
     }
 
     .tarjeta-descarga .formato {
-      font-size: 13px;
+      font-size: 13.5px;
       color: var(--texto-suave);
-      margin-bottom: 14px;
+      margin-bottom: 18px;
     }
 
     .tarjeta-descarga ul {
       list-style: none;
-      margin: 4px 0 20px;
+      text-align: left;
+      width: 100%;
+      margin-bottom: 24px;
+      font-size: 14px;
+      color: var(--texto-suave);
     }
 
     .tarjeta-descarga li {
-      font-size: 13.5px;
-      color: var(--texto-suave);
-      padding: 3px 0;
+      padding: 5px 0;
+      display: flex;
+      align-items: center;
+      gap: 9px;
     }
 
-    .nota-descargas {
+    .tarjeta-descarga li svg {
+      color: var(--verde);
+      flex-shrink: 0;
+    }
+
+    /* Banner Contacto / Demo */
+    .banner-contacto {
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+      border-radius: var(--radius-lg);
+      padding: 46px 40px;
       text-align: center;
-      margin-top: 30px;
-      font-size: 14px;
-      color: var(--texto-suave);
+      color: white;
+      max-width: 900px;
+      margin: 0 auto;
+      box-shadow: var(--sombra-lg);
     }
 
-    .nota-descargas a {
-      color: var(--azul);
-      font-weight: 600;
+    .banner-contacto h3 {
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 10px;
     }
 
+    .banner-contacto p {
+      color: #cbd5e1;
+      font-size: 16px;
+      max-width: 600px;
+      margin: 0 auto 26px;
+    }
+
+    /* ===== Footer ===== */
     footer {
       border-top: 1px solid var(--borde);
-      padding: 40px 0 46px;
-      text-align: center;
+      background: white;
+      padding: 50px 0 36px;
       color: var(--texto-suave);
       font-size: 14px;
-      background: white;
     }
 
-    footer .logo {
-      justify-content: center;
-      margin-bottom: 12px;
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-bottom: 30px;
     }
 
-    footer a {
-      color: var(--azul);
+    .footer-links {
+      display: flex;
+      gap: 22px;
+    }
+
+    .footer-links a {
       text-decoration: none;
+      color: var(--texto-suave);
       font-weight: 600;
+      transition: color 0.2s;
     }
 
-    @media (max-width: 860px) {
+    .footer-links a:hover {
+      color: var(--azul);
+    }
+
+    .footer-bottom {
+      border-top: 1px solid var(--borde-luz);
+      padding-top: 24px;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    /* ===== Responsiveness ===== */
+    @media (max-width: 900px) {
       .hero-grid {
         grid-template-columns: 1fr;
-        gap: 44px;
+        gap: 40px;
       }
 
-      .nav-links a:not(.btn) {
+      .simulador-container {
+        grid-template-columns: 1fr;
+      }
+
+      .sim-controles {
+        border-right: none;
+        border-bottom: 1px solid var(--borde);
+      }
+
+      .calc-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .nav-links {
         display: none;
       }
 
-      section {
-        padding: 56px 0;
+      .menu-toggle {
+        display: block;
       }
     }
   </style>
@@ -563,14 +1184,33 @@
       <a class="logo" href="#">
         <img src="logo.png" alt="Logo VCDetection" />
         VCDetection
+        <span class="logo-badge">v2.1 IoT</span>
       </a>
+
       <div class="nav-links">
         <a href="#como-funciona">Cómo funciona</a>
+        <a href="#simulador">Simulador en vivo</a>
+        <a href="#calculadora">Calculadora</a>
         <a href="#caracteristicas">Características</a>
-        <a href="#descargas">Descargas</a>
-        <a class="btn btn-secundario btn-sm" href="https://github.com/mariosibrianjr-byte/vcdetection-backend"
-          target="_blank" rel="noopener">GitHub</a>
+        <a href="#faq">Preguntas</a>
+        <a href="#descargas" class="btn btn-primario btn-sm">Descargar App</a>
       </div>
+
+      <button class="menu-toggle" id="btnMenu" aria-label="Abrir menú">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Menú Móvil Desplegable -->
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="#como-funciona" onclick="cerrarMenu()">Cómo funciona</a>
+      <a href="#simulador" onclick="cerrarMenu()">Simulador en vivo</a>
+      <a href="#calculadora" onclick="cerrarMenu()">Calculadora escolar</a>
+      <a href="#caracteristicas" onclick="cerrarMenu()">Características</a>
+      <a href="#faq" onclick="cerrarMenu()">Preguntas frecuentes</a>
+      <a href="#descargas" class="btn btn-primario" onclick="cerrarMenu()">Descargar Apps</a>
     </div>
   </nav>
 
@@ -580,150 +1220,437 @@
     <div class="blob blob-b"></div>
     <div class="contenedor hero-grid">
       <div>
-        <span class="badge">Sistema encubierto para colegios</span>
-        <h1>Detección inteligente de humo de <span>vape y cigarrillo</span> en tu institución</h1>
+        <div class="hero-pill">
+          <i></i> Sistema encubierto para instituciones educativas
+        </div>
+        <h1>Detección inteligente de <span>vape y cigarrillo</span> en salones y baños</h1>
         <p class="sub">
-          Sensores discretos instalados en los salones analizan el aire las 24 horas.
-          Cuando detectan vapeo o tabaco, la dirección recibe una alerta inmediata
-          con el salón exacto — en su celular y su computadora.
+          Sensores discretos con microcontrolador ESP32 analizan el aire en tiempo real. 
+          Al detectar humo o aerosol químico, la dirección y los coordinadores reciben una 
+          alerta inmediata con el lugar exacto en su celular y computadora.
         </p>
+
         <div class="hero-botones">
-          <a class="btn btn-primario"
-            href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/download/latest/VCDetection-movil.apk">
-            Descargar Android (APK)
+          <a class="btn btn-primario" href="#descargas">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Descargar Aplicaciones
           </a>
-          <a class="btn btn-secundario"
-            href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/download/latest/VCDetection-Setup.exe">
-            Descargar Windows (.exe)
+          <a class="btn btn-secundario" href="#simulador">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Probar Simulador en Vivo
           </a>
         </div>
+
+        <div class="hero-garantias">
+          <span>
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+            </svg>
+            100% Privacidad (Sin cámaras)
+          </span>
+          <span>
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+            </svg>
+            Filtro anti falsos positivos
+          </span>
+        </div>
       </div>
-      <div class="mock-zona">
-        <div class="mock-alerta">
+
+      <!-- Mockup Visual Flotante -->
+      <div class="hero-visual">
+        <div class="mockup-alerta">
           <div class="mock-franja"></div>
+          <div class="mock-header">
+            <div class="mock-status"><i></i> EN LÍNEA · MONITOREANDO</div>
+            <div class="mock-tiempo">Hace 4 seg</div>
+          </div>
           <div class="mock-cuerpo">
-            <div class="mock-top">
-              <div class="mock-icono">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                  <line x1="12" y1="9" x2="12" y2="13" />
-                  <line x1="12" y1="17" x2="12.01" y2="17" />
+            <div class="mock-alerta-box">
+              <div class="mock-icono-peligro">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
-              <div>
-                <div class="mock-titulo">Vape confirmado</div>
-                <div class="mock-sub">Salón 07 · hace 10 segundos</div>
+              <div class="mock-alerta-info">
+                <h4>Vape Confirmado</h4>
+                <p>Baño de Alumnos · Planta Baja</p>
               </div>
             </div>
-            <div class="mock-stats">
-              <span class="chip">CO 28 ppm</span>
-              <span class="chip">PM2.5 61 µg/m³</span>
-              <span class="chip">CO₂ 890 ppm</span>
+
+            <div class="mock-metricas">
+              <div class="metrica-item">
+                <div class="metrica-valor">64 µg</div>
+                <div class="metrica-etiqueta">PM2.5</div>
+              </div>
+              <div class="metrica-item">
+                <div class="metrica-valor">18 ppm</div>
+                <div class="metrica-etiqueta">Gas CO</div>
+              </div>
+              <div class="metrica-item">
+                <div class="metrica-valor">+14%</div>
+                <div class="metrica-etiqueta">Humedad</div>
+              </div>
             </div>
-            <div class="mock-enviado">Notificación push y email enviados</div>
+
+            <div class="mock-notif">
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              Notificación enviada a 3 directores
+            </div>
           </div>
         </div>
       </div>
     </div>
   </header>
 
-  <!-- ============ CÓMO FUNCIONA ============ -->
-  <section id="como-funciona">
+  <!-- ============ SIMULADOR INTERACTIVO ============ -->
+  <section id="simulador">
     <div class="contenedor">
       <div class="titulo-seccion">
-        <h2>Cómo funciona</h2>
-        <p>Cuatro pasos entre el salón de clases y la alerta en tu bolsillo.</p>
+        <span class="tag-seccion">Laboratorio Interactivo</span>
+        <h2>Prueba el algoritmo de detección en vivo</h2>
+        <p>Elige un escenario escolar o ajusta los niveles de los sensores para ver cómo reacciona el sistema.</p>
       </div>
-      <div class="pasos">
-        <div class="paso">
-          <h3>Sensores discretos</h3>
-          <p>Un módulo compacto basado en ESP32 mide continuamente la calidad del aire del salón: monóxido de carbono,
-            material particulado fino, CO₂, temperatura y humedad.</p>
+
+      <div class="simulador-container">
+        <!-- Controles -->
+        <div class="sim-controles">
+          <h3>Selecciona un escenario rápido:</h3>
+          <p class="desc">Haz clic en una situación para precargar los valores típicos del aire:</p>
+
+          <div class="sim-escenarios">
+            <button class="btn-escenario activo" onclick="aplicarEscenario('limpio')">
+              <span class="icono">🍃</span>
+              Aire Normal
+              <small style="color:var(--texto-suave); font-weight:500;">Salón en receso</small>
+            </button>
+            <button class="btn-escenario" onclick="aplicarEscenario('vape')">
+              <span class="icono">💨</span>
+              Vapeo en Baño
+              <small style="color:var(--texto-suave); font-weight:500;">Aerosol fino + humedad</small>
+            </button>
+            <button class="btn-escenario" onclick="aplicarEscenario('cigarrillo')">
+              <span class="icono">🚬</span>
+              Cigarrillo
+              <small style="color:var(--texto-suave); font-weight:500;">CO alto por combustión</small>
+            </button>
+            <button class="btn-escenario" onclick="aplicarEscenario('perfume')">
+              <span class="icono">🧴</span>
+              Desodorante
+              <small style="color:var(--texto-suave); font-weight:500;">Falso positivo filtrado</small>
+            </button>
+          </div>
+
+          <h4 style="font-size:15px; margin-bottom:14px;">O calibra manualmente:</h4>
+
+          <div class="slider-grupo">
+            <div class="slider-header">
+              <span>Partículas PM2.5 (Aerosol)</span>
+              <span class="valor" id="valPM">8 µg/m³</span>
+            </div>
+            <input type="range" id="rangePM" min="0" max="150" value="8" oninput="actualizarSimulador()" />
+          </div>
+
+          <div class="slider-grupo">
+            <div class="slider-header">
+              <span>Monóxido de Carbono - MQ7</span>
+              <span class="valor" id="valCO">4 ppm</span>
+            </div>
+            <input type="range" id="rangeCO" min="0" max="60" value="4" oninput="actualizarSimulador()" />
+          </div>
+
+          <div class="slider-grupo">
+            <div class="slider-header">
+              <span>Salto de Humedad (DHT22)</span>
+              <span class="valor" id="valHum">+0 %</span>
+            </div>
+            <input type="range" id="rangeHum" min="0" max="30" value="0" oninput="actualizarSimulador()" />
+          </div>
         </div>
-        <div class="paso">
-          <h3>Transmisión segura</h3>
-          <p>Cada lectura viaja al servidor por WiFi usando una clave API exclusiva del dispositivo, autenticada y
-            verificada en cada envío.</p>
-        </div>
-        <div class="paso">
-          <h3>Análisis inteligente</h3>
-          <p>El servidor cruza los gases, partículas y humedad para reconocer el patrón del vapor de vape o el humo de
-            cigarrillo, ignorando falsos positivos.</p>
-        </div>
-        <div class="paso">
-          <h3>Alerta instantánea</h3>
-          <p>En menos de un segundo llega la notificación push al celular, el correo electrónico al coordinador y la
-            señal en vivo al panel del dashboard.</p>
+
+        <!-- Pantalla de Respuesta -->
+        <div class="sim-pantalla">
+          <div>
+            <div class="sim-header-pantalla">
+              <span style="font-size:13px; font-weight:700; color:var(--texto-suave);">ESTADO DEL DISPOSITIVO</span>
+              <span class="sensor-estado-tag estado-verde" id="tagEstado">
+                ● Normal
+              </span>
+            </div>
+
+            <div class="sim-resultado-box" id="cajaResultado">
+              <h4 id="resTitulo">Ambiente Seguro</h4>
+              <p id="resDesc">Calidad del aire dentro de los rangos normales. No se detecta humo ni vapeo.</p>
+            </div>
+
+            <div class="sim-graficas-resumen">
+              <div class="gauge-mini">
+                <div class="g-num" id="gPM">8</div>
+                <div class="g-label">PM2.5 (µg/m³)</div>
+              </div>
+              <div class="gauge-mini">
+                <div class="g-num" id="gCO">4</div>
+                <div class="g-label">CO (ppm)</div>
+              </div>
+              <div class="gauge-mini">
+                <div class="g-num" id="gConf">0%</div>
+                <div class="g-label">Confianza Alerta</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notificación simulada -->
+          <div class="sim-push-notif" id="pushNotif">
+            <div class="sim-push-icon">
+              <svg width="18" height="18" fill="white" viewBox="0 0 24 24">
+                <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
+              </svg>
+            </div>
+            <div class="sim-push-text">
+              <h5 id="pushTitulo">VCDetection Sistema</h5>
+              <p id="pushCuerpo">Monitoreo activo en segundo plano en 12 salones.</p>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="sensores">
-        <span class="sensor-chip"><i></i> MQ-7 · Monóxido de carbono</span>
-        <span class="sensor-chip"><i></i> PM2.5 / PM10 · Partículas</span>
-        <span class="sensor-chip"><i></i> MH-Z19C · CO₂</span>
-        <span class="sensor-chip"><i></i> DHT22 · Temperatura y humedad</span>
+    </div>
+  </section>
+
+  <!-- ============ CÓMO FUNCIONA ============ -->
+  <section id="como-funciona" style="background: white; border-block: 1px solid var(--borde);">
+    <div class="contenedor">
+      <div class="titulo-seccion">
+        <span class="tag-seccion">Arquitectura</span>
+        <h2>De la partícula de humo al celular del director</h2>
+        <p>Proceso de detección automatizado en cuatro pasos sin intervención manual.</p>
+      </div>
+
+      <div class="pasos-grid">
+        <div class="paso-card">
+          <h3>Módulo Compacto</h3>
+          <p>Un gabinete discreto sin cámaras ni micrófonos analiza continuamente el aire del salón mediante sensores electroquímicos y láser.</p>
+        </div>
+        <div class="paso-card">
+          <h3>Conexión Encriptada</h3>
+          <p>Las lecturas viajan por Wi-Fi cifradas con clave API exclusiva de cada sensor directamente al servidor central seguro.</p>
+        </div>
+        <div class="paso-card">
+          <h3>Filtro Anti-Falso Positivo</h3>
+          <p>El algoritmo analiza la proporción de PM1.0, PM2.5, CO y humedad. Descarta automáticamente aerosoles de desodorante o polvo.</p>
+        </div>
+        <div class="paso-card">
+          <h3>Alerta Multicanal</h3>
+          <p>En menos de 1 segundo llega una notificación push a la app móvil de los coordinadores y suena en el panel de Windows.</p>
+        </div>
+      </div>
+
+      <div class="chips-hardware">
+        <span class="chip-hw"><i></i> MQ-7 · Monóxido de Carbono (CO)</span>
+        <span class="chip-hw"><i></i> PMS5003 · Partículas Láser PM2.5/PM10</span>
+        <span class="chip-hw"><i></i> MH-Z19C · CO₂ Infrarrojo NDIR</span>
+        <span class="chip-hw"><i></i> ESP32 · Microcontrolador con Watchdog</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CALCULADORA ESCOLAR ============ -->
+  <section id="calculadora">
+    <div class="contenedor">
+      <div class="calculadora-card">
+        <div class="calc-grid">
+          <div class="calc-inputs">
+            <span class="tag-seccion">Estimador Institucional</span>
+            <h3>¿Cuántos sensores necesita tu colegio?</h3>
+            <p>Calcula la cobertura ideal según las dimensiones de tu campus escolar.</p>
+
+            <div class="slider-grupo">
+              <div class="slider-header">
+                <span>Cantidad de Aulas / Salones</span>
+                <span class="valor" id="valAulas">12</span>
+              </div>
+              <input type="range" id="inputAulas" min="1" max="50" value="12" oninput="calcularSensores()" />
+            </div>
+
+            <div class="slider-grupo">
+              <div class="slider-header">
+                <span>Baños y Pasillos Críticos</span>
+                <span class="valor" id="valBanios">6</span>
+              </div>
+              <input type="range" id="inputBanios" min="1" max="25" value="6" oninput="calcularSensores()" />
+            </div>
+          </div>
+
+          <div class="calc-box-resultado">
+            <div class="calc-numero-grande" id="resSensores">18</div>
+            <div class="calc-label-grande">Sensores Recomendados</div>
+
+            <ul class="calc-detalles">
+              <li><b>100%</b> de cobertura en puntos de riesgo</li>
+              <li id="resInstalacion">Tiempo estimado de instalación: <b>1 día</b></li>
+              <li>Actualizaciones remotas vía Wi-Fi (OTA)</li>
+            </ul>
+
+            <a href="#descargas" class="btn btn-primario" style="width: 100%; margin-top: 18px;">
+              Solicitar Cotización y Demo
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
   <!-- ============ CARACTERÍSTICAS ============ -->
-  <section id="caracteristicas" style="background:white; border-block: 1px solid var(--borde);">
+  <section id="caracteristicas" style="background: white; border-block: 1px solid var(--borde);">
     <div class="contenedor">
       <div class="titulo-seccion">
-        <h2>Todo lo que incluye</h2>
-        <p>Una plataforma completa: hardware, servidor, app móvil y panel de escritorio.</p>
+        <span class="tag-seccion">Funcionalidades</span>
+        <h2>Una plataforma completa para colegios</h2>
+        <p>Diseñada pensando en la seguridad del alumnado y la comodidad del personal docente.</p>
       </div>
-      <div class="grid-caracs">
-        <div class="carac">
-          <div class="carac-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed"
-              stroke-width="2" stroke-linecap="round">
+
+      <div class="caracs-grid">
+        <div class="carac-card">
+          <div class="carac-icono" style="background: #eef2ff;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round">
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-            </svg></div>
-          <h3>Tiempo real</h3>
-          <p>Lecturas y alertas en vivo vía WebSockets, sin recargar la pantalla.</p>
+            </svg>
+          </div>
+          <h3>Monitoreo en Tiempo Real</h3>
+          <p>Conexión continua por WebSockets. Las lecturas se actualizan segundo a segundo sin recargar pantallas.</p>
         </div>
-        <div class="carac">
-          <div class="carac-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+        <div class="carac-card">
+          <div class="carac-icono" style="background: #ecfdf5;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round">
               <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
               <path d="M13.73 21a2 2 0 01-3.46 0" />
-            </svg></div>
-          <h3>Notificaciones push</h3>
-          <p>Alertas al instante en Android mediante Firebase Cloud Messaging.</p>
+            </svg>
+          </div>
+          <h3>Notificaciones Push Móviles</h3>
+          <p>Alertas instantáneas en dispositivos Android mediante Firebase Cloud Messaging sin consumir batería.</p>
         </div>
-        <div class="carac">
-          <div class="carac-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-              <polyline points="22,6 12,13 2,6" />
-            </svg></div>
-          <h3>Alertas por email</h3>
-          <p>Cada detección importante se reporta también por correo electrónico.</p>
-        </div>
-        <div class="carac">
-          <div class="carac-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-            </svg></div>
-          <h3>Historial y estadísticas</h3>
-          <p>Gráficas por rango de fechas, resumen de 24 horas y conteo por tipo de alerta.</p>
-        </div>
-        <div class="carac">
-          <div class="carac-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+        <div class="carac-card">
+          <div class="carac-icono" style="background: #fdf4ff;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg></div>
-          <h3>Seguridad por capas</h3>
-          <p>JWT para usuarios, clave API para sensores, roles ADMIN/COORDINADOR y límite de intentos de acceso.</p>
+            </svg>
+          </div>
+          <h3>Privacidad Garantizada</h3>
+          <p>Ideal para baños y vestidores: no contiene micrófonos ni cámaras. Solo analiza parámetros químicos del aire.</p>
         </div>
-        <div class="carac">
-          <div class="carac-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="7" width="20" height="14" rx="2" />
-              <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
-            </svg></div>
-          <h3>Multisalón</h3>
-          <p>Gestiona todos los sensores del colegio desde un solo lugar y ve cuáles están conectados.</p>
+
+        <div class="carac-card">
+          <div class="carac-icono" style="background: #fff7ed;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2" stroke-linecap="round">
+              <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3>Historial e Informes</h3>
+          <p>Bitácora con fecha, hora exacta y concentraciones para actas disciplinarias y reportes a padres de familia.</p>
+        </div>
+
+        <div class="carac-card">
+          <div class="carac-icono" style="background: #f0fdf4;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+          </div>
+          <h3>Panel de Escritorio (Windows)</h3>
+          <p>Software para prefectura y recepción con visualización de estado de todos los salones en tiempo real.</p>
+        </div>
+
+        <div class="carac-card">
+          <div class="carac-icono" style="background: #f1f5f9;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+              <polyline points="22,6 12,13 2,6"></polyline>
+            </svg>
+          </div>
+          <h3>Reportes por Correo</h3>
+          <p>Envío de correos automáticos al comité de convivencia escolar en detecciones de alta confianza.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PREGUNTAS FRECUENTES (FAQ) ============ -->
+  <section id="faq">
+    <div class="contenedor">
+      <div class="titulo-seccion">
+        <span class="tag-seccion">Preguntas Frecuentes</span>
+        <h2>Todo lo que tu institución necesita saber</h2>
+        <p>Respuestas claras a las dudas más habituales de directores y coordinadores.</p>
+      </div>
+
+      <div class="faq-lista">
+        <div class="faq-item abierto">
+          <div class="faq-pregunta" onclick="toggleFaq(this)">
+            ¿Viola la privacidad de los alumnos en baños o vestidores?
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </div>
+          <div class="faq-respuesta">
+            <b>Absolutamente no.</b> El dispositivo está diseñado conforme a las normativas de privacidad escolar: no incorpora cámaras, micrófonos ni sensores biométricos. Solo analiza partículas en suspensión y gases ambientales (CO, PM2.5 y humedad).
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-pregunta" onclick="toggleFaq(this)">
+            ¿Se confunde con perfumes, desodorantes en aerosol o vapor de ducha?
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </div>
+          <div class="faq-respuesta">
+            El sistema utiliza un <b>filtro cruzado de sensores</b>. Los desodorantes y perfumes liberan propelentes volátiles que no contienen la firma química ni el tamaño de gota ultrafina del aerosol de vapeo ni la combustión de monóxido de carbono (CO). Si un alumno usa desodorante, el algoritmo lo clasifica como inocuo y no genera alarma.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-pregunta" onclick="toggleFaq(this)">
+            ¿Qué pasa si el Wi-Fi del colegio se desconecta temporalmente?
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </div>
+          <div class="faq-respuesta">
+            Cada sensor cuenta con una <b>cola de respaldo en memoria</b> y reconexión automática con backoff exponencial. Si el Wi-Fi se corta, las lecturas se acumulan localmente y se transmiten en cuanto la red vuelve a estar disponible, sin perder el historial.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-pregunta" onclick="toggleFaq(this)">
+            ¿Cómo se actualiza el sensor si está en techos altos?
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </div>
+          <div class="faq-respuesta">
+            Gracias al soporte <b>ArduinoOTA (Over-The-Air)</b> integrado, las mejoras de firmware y calibraciones se transmiten de forma inalámbrica a través de la red local sin necesidad de escaleras ni desmontar los dispositivos físicamente.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-pregunta" onclick="toggleFaq(this)">
+            ¿Cómo se alimenta eléctricamente el dispositivo?
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </div>
+          <div class="faq-respuesta">
+            El módulo opera a 5V DC mediante cable micro-USB convencional o puede conectarse directamente a la caja de registro de iluminación del techo mediante un módulo conmutado oculto de 110V/220V a 5V.
+          </div>
         </div>
       </div>
     </div>
@@ -733,68 +1660,272 @@
   <section id="descargas">
     <div class="contenedor">
       <div class="titulo-seccion">
+        <span class="tag-seccion">Software Oficial</span>
         <h2>Descarga las aplicaciones</h2>
-        <p>Gratis y siempre actualizadas desde el repositorio oficial del proyecto.</p>
+        <p>Disponibles de forma abierta y siempre sincronizadas con la última versión del sistema.</p>
       </div>
+
       <div class="descargas-grid">
+        <!-- Android -->
         <div class="tarjeta-descarga">
-          <div class="plataforma-icono icono-android">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <rect x="5" y="2" width="14" height="20" rx="2" />
-              <line x1="12" y1="18" x2="12.01" y2="18" />
+          <div class="plataforma-badge" style="background: #ecfdf5;">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="5" y="2" width="14" height="20" rx="2"></rect>
+              <line x1="12" y1="18" x2="12.01" y2="18"></line>
             </svg>
           </div>
-          <h3>Android</h3>
-          <div class="formato">Archivo APK · Instalación directa</div>
+          <h3>Android Móvil</h3>
+          <div class="formato">Archivo APK · Instalación Directa</div>
           <ul>
-            <li>Requiere Android 8.0 o superior</li>
-            <li>Notificaciones push incluidas</li>
-            <li>Permitir "apps de origen desconocido"</li>
+            <li>
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+              Notificaciones push instantáneas (FCM)
+            </li>
+            <li>
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+              Compatible con Android 8.0 o superior
+            </li>
+            <li>
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+              Bajo consumo de batería en segundo plano
+            </li>
           </ul>
-          <a class="btn btn-primario"
-            href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/download/latest/VCDetection-movil.apk">Descargar
-            APK</a>
+          <a class="btn btn-primario" style="width:100%;" href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/download/latest/VCDetection-movil.apk">
+            Descargar APK (Android)
+          </a>
         </div>
+
+        <!-- Windows -->
         <div class="tarjeta-descarga">
-          <div class="plataforma-icono icono-windows">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="#4f46e5">
-              <path
-                d="M3 5.5l7.5-1v7H3v-6zm0 13v-6h7.5v7L3 18.5zm8.5 1.1v-7.1H21v8l-9.5-1.3v.4zm0-15.2L21 3.3v8.2h-9.5v-7z" />
+          <div class="plataforma-badge" style="background: #eef2ff;">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="#4f46e5">
+              <path d="M3 5.5l7.5-1v7H3v-6zm0 13v-6h7.5v7L3 18.5zm8.5 1.1v-7.1H21v8l-9.5-1.3v.4zm0-15.2L21 3.3v8.2h-9.5v-7z" />
             </svg>
           </div>
-          <h3>Windows</h3>
-          <div class="formato">Instalador .exe · Asistente paso a paso</div>
+          <h3>Panel Windows</h3>
+          <div class="formato">Instalador .exe · Asistente Completo</div>
           <ul>
-            <li>Windows 10 u 11 (64 bits)</li>
-            <li>Panel completo de administración</li>
-            <li>Instalación en cualquier carpeta</li>
+            <li>
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+              Dashboard para monitores de prefectura
+            </li>
+            <li>
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+              Alertas sonoras y visuales en tiempo real
+            </li>
+            <li>
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+              Compatible con Windows 10 y 11 (64-bit)
+            </li>
           </ul>
-          <a class="btn btn-primario"
-            href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/download/latest/VCDetection-Setup.exe">Descargar
-            instalador</a>
+          <a class="btn btn-primario" style="width:100%;" href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/download/latest/VCDetection-Setup.exe">
+            Descargar Instalador (.exe)
+          </a>
         </div>
       </div>
-      <p class="nota-descargas">
-        ¿Buscas una versión anterior? <a href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases"
-          target="_blank" rel="noopener">Ver todas las versiones publicadas</a>
-      </p>
+
+      <!-- Banner Contacto -->
+      <div class="banner-contacto">
+        <h3>¿Quieres implementar VCDetection en tu colegio?</h3>
+        <p>Brindamos asesoría en instalación de hardware, configuración de salones y acompañamiento en el despliegue.</p>
+        <a class="btn btn-primario" style="background:white; color:var(--texto); font-weight:800;"
+          href="https://github.com/mariosibrianjr-byte/vcdetection-backend" target="_blank" rel="noopener">
+          Ver Código y Documentación en GitHub
+        </a>
+      </div>
     </div>
   </section>
 
   <!-- ============ FOOTER ============ -->
   <footer>
     <div class="contenedor">
-      <a class="logo" href="#">
-        <img src="logo.png" alt="Logo VCDetection" width="26" height="26" />
-        VCDetection
-      </a>
-      <p>Sistema encubierto de detección de humo para instituciones educativas.</p>
-      <p style="margin-top:8px;">Código abierto en <a href="https://github.com/mariosibrianjr-byte/vcdetection-backend"
-          target="_blank" rel="noopener">GitHub</a> · © 2026 VCDetection</p>
+      <div class="footer-inner">
+        <a class="logo" href="#">
+          <img src="logo.png" alt="Logo VCDetection" />
+          VCDetection
+        </a>
+        <div class="footer-links">
+          <a href="#como-funciona">Cómo funciona</a>
+          <a href="#simulador">Simulador</a>
+          <a href="#calculadora">Calculadora</a>
+          <a href="#faq">Preguntas</a>
+          <a href="https://github.com/mariosibrianjr-byte/vcdetection-backend" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        Sistema encubierto de detección de humo y vape para instituciones educativas · © 2026 VCDetection. Código abierto bajo licencia MIT.
+      </div>
     </div>
   </footer>
 
+  <!-- ============ JAVASCRIPT INTERACTIVO ============ -->
+  <script>
+    // ===== Menú Móvil =====
+    const btnMenu = document.getElementById("btnMenu");
+    const mobileMenu = document.getElementById("mobileMenu");
+
+    btnMenu.addEventListener("click", () => {
+      mobileMenu.classList.toggle("activo");
+    });
+
+    function cerrarMenu() {
+      mobileMenu.classList.remove("activo");
+    }
+
+    // ===== FAQ Acordeón =====
+    function toggleFaq(elemento) {
+      const item = elemento.parentElement;
+      const abierto = item.classList.contains("abierto");
+
+      // Cerrar otros
+      document.querySelectorAll(".faq-item").forEach(el => el.classList.remove("abierto"));
+
+      if (!abierto) {
+        item.classList.add("abierto");
+      }
+    }
+
+    // ===== Simulador Interactivo =====
+    function aplicarEscenario(tipo) {
+      const rPM = document.getElementById("rangePM");
+      const rCO = document.getElementById("rangeCO");
+      const rHum = document.getElementById("rangeHum");
+
+      // Marcar botón activo
+      document.querySelectorAll(".btn-escenario").forEach(b => b.classList.remove("activo"));
+      if (event && event.currentTarget) {
+        event.currentTarget.classList.add("activo");
+      }
+
+      if (tipo === "limpio") {
+        rPM.value = 8;
+        rCO.value = 4;
+        rHum.value = 0;
+      } else if (tipo === "vape") {
+        rPM.value = 65;
+        rCO.value = 16;
+        rHum.value = 15;
+      } else if (tipo === "cigarrillo") {
+        rPM.value = 45;
+        rCO.value = 36;
+        rHum.value = 2;
+      } else if (tipo === "perfume") {
+        rPM.value = 10;
+        rCO.value = 3;
+        rHum.value = 18;
+      }
+
+      actualizarSimulador();
+    }
+
+    function actualizarSimulador() {
+      const pm = parseInt(document.getElementById("rangePM").value);
+      const co = parseInt(document.getElementById("rangeCO").value);
+      const hum = parseInt(document.getElementById("rangeHum").value);
+
+      document.getElementById("valPM").textContent = pm + " µg/m³";
+      document.getElementById("valCO").textContent = co + " ppm";
+      document.getElementById("valHum").textContent = "+" + hum + " %";
+
+      document.getElementById("gPM").textContent = pm;
+      document.getElementById("gCO").textContent = co;
+
+      const tag = document.getElementById("tagEstado");
+      const caja = document.getElementById("cajaResultado");
+      const titulo = document.getElementById("resTitulo");
+      const desc = document.getElementById("resDesc");
+      const pushTit = document.getElementById("pushTitulo");
+      const pushCue = document.getElementById("pushCuerpo");
+      const gConf = document.getElementById("gConf");
+
+      let estado = "limpio";
+      let confianza = 0;
+
+      // Lógica de detección simulada
+      if (co >= 25 && pm >= 30) {
+        estado = "cigarrillo";
+        confianza = 95;
+      } else if (pm >= 40 && hum >= 8) {
+        estado = "vape";
+        confianza = 92;
+      } else if (pm >= 35) {
+        estado = "pm_alto";
+        confianza = 70;
+      } else if (hum >= 12 && co < 10 && pm < 20) {
+        estado = "aerosol_descartado";
+        confianza = 10;
+      }
+
+      gConf.textContent = confianza + "%";
+
+      if (estado === "cigarrillo") {
+        tag.className = "sensor-estado-tag estado-rojo";
+        tag.textContent = "● ALERTA: Cigarrillo";
+        caja.className = "sim-resultado-box alerta-activa";
+        titulo.textContent = "⚠️ Cigarrillo Confirmado";
+        titulo.style.color = "#991b1b";
+        desc.textContent = "Presencia de CO elevado por combustión de tabaco en Salón 03. Notificación transmitida.";
+        pushTit.textContent = "⚠️ ALERTA: Cigarrillo Detectado";
+        pushCue.textContent = "Salón 03: CO en 36 ppm. Posible humo de tabaco.";
+      } else if (estado === "vape") {
+        tag.className = "sensor-estado-tag estado-rojo";
+        tag.textContent = "● ALERTA: Vapeo";
+        caja.className = "sim-resultado-box alerta-activa";
+        titulo.textContent = "🚨 Vape Confirmado";
+        titulo.style.color = "#991b1b";
+        desc.textContent = "Aerosol ultrafino y salto brusco de humedad coincidente con vapor de cigarrillo electrónico.";
+        pushTit.textContent = "🚨 ALERTA: Vapeo en Baño 02";
+        pushCue.textContent = "Baño Planta Baja: Salto de PM2.5 y humedad detectado.";
+      } else if (estado === "pm_alto") {
+        tag.className = "sensor-estado-tag estado-rojo";
+        tag.textContent = "● Aviso de Partículas";
+        caja.className = "sim-resultado-box alerta-activa";
+        titulo.textContent = "Aviso: Partículas Elevadas";
+        titulo.style.color = "#b45309";
+        desc.textContent = "Nivel de PM2.5 superior a 35 µg/m³. Posible presencia de humo en el área.";
+        pushTit.textContent = "Aviso: Partículas Elevadas";
+        pushCue.textContent = "Salón 01: PM2.5 superior a los límites recomendados.";
+      } else if (estado === "aerosol_descartado") {
+        tag.className = "sensor-estado-tag estado-verde";
+        tag.textContent = "● Falso Positivo Filtrado";
+        caja.className = "sim-resultado-box";
+        titulo.textContent = "Aerosol Inocuo Descartado";
+        titulo.style.color = "#065f46";
+        desc.textContent = "Se detectó aerosol o perfume sin monóxido de carbono ni partículas de combustión. El sistema ignoró la falsa alarma.";
+        pushTit.textContent = "VCDetection Filtro";
+        pushCue.textContent = "Aerosol inocuo detectado y filtrado automáticamente.";
+      } else {
+        tag.className = "sensor-estado-tag estado-verde";
+        tag.textContent = "● Normal";
+        caja.className = "sim-resultado-box";
+        titulo.textContent = "Ambiente Seguro";
+        titulo.style.color = "var(--texto)";
+        desc.textContent = "Calidad del aire dentro de los rangos normales. No se detecta humo ni vapeo.";
+        pushTit.textContent = "VCDetection Sistema";
+        pushCue.textContent = "Monitoreo activo en segundo plano en 12 salones.";
+      }
+    }
+
+    // ===== Calculadora Escolar =====
+    function calcularSensores() {
+      const aulas = parseInt(document.getElementById("inputAulas").value);
+      const banios = parseInt(document.getElementById("inputBanios").value);
+
+      document.getElementById("valAulas").textContent = aulas;
+      document.getElementById("valBanios").textContent = banios;
+
+      // 1 sensor por aula + 1 por baño
+      const total = aulas + banios;
+      document.getElementById("resSensores").textContent = total;
+
+      const dias = total <= 10 ? "1 día" : total <= 25 ? "2 días" : "3 a 4 días";
+      document.getElementById("resInstalacion").innerHTML = `Tiempo estimado de instalación: <b>${dias}</b>`;
+    }
+
+    // Inicializar cálculos al cargar
+    actualizarSimulador();
+    calcularSensores();
+  </script>
 </body>
 
 </html>
