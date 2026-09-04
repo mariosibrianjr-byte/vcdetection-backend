@@ -106,34 +106,54 @@ export default function AlertasScreen() {
         }
         ListEmptyComponent={
           <View style={styles.emptyBox}>
-            <Text style={{ fontSize: 32, marginBottom: 8 }}>✅</Text>
-            <Text style={styles.emptyText}>Sin alertas</Text>
-            <Text style={styles.emptySub}>Todo en orden por ahora</Text>
+            <View style={styles.okPill}><Text style={styles.okPillText}>OK</Text></View>
+            <Text style={styles.emptyText}>Sin alertas activas</Text>
+            <Text style={styles.emptySub}>Ambiente escolar en orden</Text>
           </View>
         }
         renderItem={({ item }) => {
           const salon = item.dispositivo?.salon || item.dispositivoId;
           return (
-            <TouchableOpacity
-              style={[styles.alertaItem, !item.vista && styles.alertaNoVista]}
-              onPress={() => !item.vista && marcarVista(item.id)}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.alertaIcono, { backgroundColor: iconoBg(item.tipo) }]}>
-                <Text style={{ fontSize: 17 }}>{tipoAlertaIcono(item.tipo)}</Text>
-              </View>
-              <View style={styles.alertaInfo}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={styles.alertaSalon}>{salon}</Text>
-                  <View style={styles.tipoPill}>
-                    <Text style={styles.tipoPillTexto}>{tipoAlertaLabel(item.tipo)}</Text>
-                  </View>
+            <View style={[styles.alertaItem, !item.vista && styles.alertaNoVista]}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+                <View style={[styles.alertaIcono, { backgroundColor: iconoBg(item.tipo) }]}>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: COLORS.textPrimary }}>{tipoAlertaIcono(item.tipo)}</Text>
                 </View>
-                <Text style={styles.alertaMsg} numberOfLines={2}>{item.mensaje}</Text>
-                <Text style={styles.alertaTime}>{formatTiempoRelativo(item.fecha)}</Text>
+                <View style={styles.alertaInfo}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.alertaSalon}>{salon}</Text>
+                    <View style={styles.tipoPill}>
+                      <Text style={styles.tipoPillTexto}>{tipoAlertaLabel(item.tipo)}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.alertaMsg} numberOfLines={2}>{item.mensaje}</Text>
+                  <Text style={styles.alertaTime}>{formatTiempoRelativo(item.fecha)}</Text>
+                </View>
+                {!item.vista && <View style={styles.dotNueva} />}
               </View>
-              {!item.vista && <View style={styles.dotNueva} />}
-            </TouchableOpacity>
+
+              {/* Botones de acción rápida */}
+              <View style={styles.alertaAccionesRow}>
+                <TouchableOpacity
+                  style={styles.btnAccionCamino}
+                  onPress={() => {
+                    marcarVista(item.id);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.btnAccionCaminoTexto}>Voy en camino</Text>
+                </TouchableOpacity>
+                {!item.vista && (
+                  <TouchableOpacity
+                    style={styles.btnAccionVista}
+                    onPress={() => marcarVista(item.id)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.btnAccionVistaTexto}>Marcar como vista</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
           );
         }}
       />
@@ -210,8 +230,43 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   dotNueva: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.red, marginTop: 6 },
+  // Acciones Rápidas
+  alertaAccionesRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  btnAccionCamino: {
+    backgroundColor: '#4f46e5',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  btnAccionCaminoTexto: { color: '#ffffff', fontSize: 11.5, fontWeight: '700' },
+  btnAccionVista: {
+    backgroundColor: COLORS.bgSecondary,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  btnAccionVistaTexto: { color: COLORS.textSecondary, fontSize: 11.5, fontWeight: '600' },
   // Empty
   emptyBox: { padding: 60, alignItems: 'center' },
+  okPill: {
+    backgroundColor: COLORS.greenSoft,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.25)',
+    marginBottom: 10,
+  },
+  okPillText: { color: COLORS.green, fontWeight: '800', fontSize: 13 },
   emptyText: { color: COLORS.textSecondary, fontSize: 15, fontWeight: '600' },
   emptySub: { color: COLORS.textMuted, fontSize: 13, marginTop: 4 },
 });

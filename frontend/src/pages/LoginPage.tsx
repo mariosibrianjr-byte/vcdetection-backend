@@ -26,7 +26,9 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
-          <div className="login-logo-icon">🔍</div>
+          <div className="login-logo-icon" style={{ background: '#4f46e5', color: '#fff', fontWeight: 800, fontSize: 16 }}>
+            VC
+          </div>
           <div>
             <h1>VCDetection</h1>
             <span>Sistema de Monitoreo Encubierto</span>

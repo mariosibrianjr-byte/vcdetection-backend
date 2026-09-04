@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { COLORS, FONT } from '../config';
 
 export default function LoginScreen() {
-  const { login, loading } = useAuth();
+  const { login, loginConBiometria, biometriaDisponible, biometriaHabilitada, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -65,7 +65,7 @@ export default function LoginScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.logoIcon}
             >
-              <Text style={{ fontSize: 21 }}>🔍</Text>
+              <Text style={{ fontSize: 18, color: '#fff', fontWeight: '800' }}>VC</Text>
             </LinearGradient>
             <View>
               <Text style={styles.title}>VCDetection</Text>
@@ -131,6 +131,22 @@ export default function LoginScreen() {
                 )}
               </LinearGradient>
             </TouchableOpacity>
+
+            {biometriaDisponible && biometriaHabilitada && (
+              <TouchableOpacity
+                style={styles.bioButton}
+                onPress={async () => {
+                  setError('');
+                  const exito = await loginConBiometria();
+                  if (!exito) {
+                    setError('Autenticación biométrica no completada');
+                  }
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.bioButtonText}>Acceso Rápido con Huella / Face ID</Text>
+              </TouchableOpacity>
+            )}
           </Animated.View>
         </Animated.View>
 
@@ -271,6 +287,20 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '700',
     fontSize: 15,
+  },
+  bioButton: {
+    marginTop: 12,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#cbd5e1',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+  },
+  bioButtonText: {
+    color: '#4f46e5',
+    fontWeight: '700',
+    fontSize: 13.5,
   },
   footerText: {
     position: 'absolute',

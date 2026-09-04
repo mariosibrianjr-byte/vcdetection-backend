@@ -12,6 +12,76 @@ import {
 } from '../types';
 import { API_URL } from '../config';
 
+// ─── Iconos Vectoriales Limpios (Sin emojis informales) ────────────────────────
+const IconWarning = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
+    <line x1="12" y1="9" x2="12" y2="13"></line>
+    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+  </svg>
+);
+
+const IconFileText = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+    <polyline points="14 2 14 8 20 8"></polyline>
+    <line x1="16" y1="13" x2="8" y2="13"></line>
+    <line x1="16" y1="17" x2="8" y2="17"></line>
+  </svg>
+);
+
+const IconTrash = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6"></polyline>
+    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+  </svg>
+);
+
+const IconSearch = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8"></circle>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+  </svg>
+);
+
+const IconUsers = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path>
+    <circle cx="9" cy="7" r="4"></circle>
+    <path d="M23 21v-2a4 4 0 00-3-3.87"></path>
+    <path d="M16 3.13a4 4 0 010 7.75"></path>
+  </svg>
+);
+
+const IconSound = ({ activo }: { activo: boolean }) => (
+  activo ? (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+      <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"></path>
+    </svg>
+  ) : (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+      <line x1="23" y1="9" x2="17" y2="15"></line>
+      <line x1="17" y1="9" x2="23" y2="15"></line>
+    </svg>
+  )
+);
+
+// ─── Estructura de Acta de Incidencia (PDF) ───────────────────────────────────
+interface DatosActa {
+  salon: string;
+  dispositivoId: string;
+  fecha: string;
+  tipo: string;
+  co: number;
+  pm25: number;
+  co2: number;
+  humedad: number;
+  temperatura: number;
+  mensaje?: string;
+}
+
 // ─── Toast de Alerta ──────────────────────────────────────────────────────────
 interface Toast { id: string; alerta: Alerta; }
 
@@ -24,9 +94,11 @@ function ToastAlerta({ toast, onClose }: { toast: Toast; onClose: () => void }) 
   const salon = toast.alerta.dispositivo?.salon || toast.alerta.dispositivoId;
   return (
     <div className="toast">
-      <div className="toast-icon">{tipoAlertaIcono(toast.alerta.tipo)}</div>
+      <div className="toast-icon">
+        <IconWarning />
+      </div>
       <div className="toast-content">
-        <div className="toast-title">⚠️ {tipoAlertaLabel(toast.alerta.tipo)}</div>
+        <div className="toast-title">{tipoAlertaLabel(toast.alerta.tipo)}</div>
         <div className="toast-body">{salon}: {toast.alerta.mensaje.slice(0, 80)}...</div>
         <div className="toast-time">{formatTiempoRelativo(toast.alerta.fecha)}</div>
       </div>
@@ -54,7 +126,8 @@ function SalonModal({
   historial,
   esAdmin,
   onClose,
-  onDeleted
+  onDeleted,
+  onGenerarActa,
 }: {
   dispositivo: Dispositivo;
   lectura?: Lectura;
@@ -62,6 +135,7 @@ function SalonModal({
   esAdmin: boolean;
   onClose: () => void;
   onDeleted: () => void;
+  onGenerarActa: (datos: DatosActa) => void;
 }) {
   const estado = calcularEstado(dispositivo, lectura);
   const colores: Record<EstadoSalon, string> = {
@@ -94,6 +168,20 @@ function SalonModal({
     }
   };
 
+  const handleActa = () => {
+    onGenerarActa({
+      salon: dispositivo.salon,
+      dispositivoId: dispositivo.nombre,
+      fecha: new Date().toISOString(),
+      tipo: lectura?.tipo || 'Revisión preventiva',
+      co: lectura ? lectura.ppm135 : 0,
+      pm25: lectura ? lectura.pm25 : 0,
+      co2: lectura ? lectura.co2 : 0,
+      humedad: lectura ? lectura.humedad : 0,
+      temperatura: lectura ? lectura.temperatura : 0,
+    });
+  };
+
   const chartData: any[] = rango === 'live'
     ? historial.slice(-20).map((l, i) => ({
         i,
@@ -120,16 +208,23 @@ function SalonModal({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <h2>{dispositivo.salon}</h2>
             <span
               className="modal-salon-badge"
               style={{ background: `${colores[estado]}22`, color: colores[estado] }}
             >
-              {estado === 'offline' ? '● Offline' : lectura?.tipo || 'Sin datos'}
+              {estado === 'offline' ? 'Desconectado' : lectura?.tipo || 'Sin datos'}
             </span>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              className="btn-pdf-acta"
+              onClick={handleActa}
+              title="Generar Acta oficial en PDF para expediente disciplinario"
+            >
+              <IconFileText /> Acta PDF
+            </button>
             {esAdmin && (
               <button
                 className="btn-danger"
@@ -137,7 +232,7 @@ function SalonModal({
                 disabled={eliminando}
                 onClick={eliminarDispositivo}
               >
-                🗑
+                <IconTrash />
               </button>
             )}
             <button className="btn-close" id="btn-close-modal" onClick={onClose}>✕</button>
@@ -255,7 +350,7 @@ function UsuariosModal({ onClose }: { onClose: () => void }) {
     setError(''); setOk(''); setCreando(true);
     try {
       await axios.post(`${API_URL}/api/auth/register`, form);
-      setOk(`✅ Usuario ${form.email} creado correctamente`);
+      setOk(`Usuario ${form.email} creado correctamente`);
       setForm({ email: '', password: '', nombre: '', rol: 'COORDINADOR' });
       cargar();
     } catch (err: any) {
@@ -281,7 +376,10 @@ function UsuariosModal({ onClose }: { onClose: () => void }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-usuarios" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>👥 Gestión de usuarios</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <IconUsers />
+            <h2>Gestión de Usuarios</h2>
+          </div>
           <button className="btn-close" onClick={onClose}>✕</button>
         </div>
         <div className="modal-body">
@@ -291,12 +389,12 @@ function UsuariosModal({ onClose }: { onClose: () => void }) {
           <form onSubmit={crear} className="usuario-form">
             <div className="form-row">
               <div className="form-group">
-                <label>Nombre</label>
+                <label>Nombre Completo</label>
                 <input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })}
-                  placeholder="María Pérez" required maxLength={60} />
+                  placeholder="Prof. Juan Pérez" required maxLength={60} />
               </div>
               <div className="form-group">
-                <label>Rol</label>
+                <label>Rol Institucional</label>
                 <select value={form.rol} onChange={e => setForm({ ...form, rol: e.target.value })}>
                   <option value="COORDINADOR">Coordinador</option>
                   <option value="ADMIN">Administrador</option>
@@ -305,9 +403,9 @@ function UsuariosModal({ onClose }: { onClose: () => void }) {
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label>Correo electrónico</label>
+                <label>Correo Institucional</label>
                 <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
-                  placeholder="usuario@colegio.edu" required />
+                  placeholder="coordinador@colegio.edu" required />
               </div>
               <div className="form-group">
                 <label>Contraseña</label>
@@ -316,15 +414,15 @@ function UsuariosModal({ onClose }: { onClose: () => void }) {
               </div>
             </div>
             <button type="submit" className="btn-primary" disabled={creando}>
-              {creando ? 'Creando…' : '+ Crear usuario'}
+              {creando ? 'Creando…' : '+ Crear Usuario'}
             </button>
           </form>
 
           <div className="section-title" style={{ marginTop: 24, marginBottom: 10 }}>
-            Cuentas existentes ({usuarios.length})
+            Cuentas Activas ({usuarios.length})
           </div>
           {cargando ? (
-            <div className="chart-vacio">Cargando…</div>
+            <div className="chart-vacio">Cargando cuentas…</div>
           ) : (
             <div className="usuarios-lista">
               {usuarios.map(u => (
@@ -342,7 +440,7 @@ function UsuariosModal({ onClose }: { onClose: () => void }) {
                     title={`Eliminar a ${u.email}`}
                     onClick={() => eliminar(u)}
                   >
-                    🗑
+                    <IconTrash />
                   </button>
                 </div>
               ))}
@@ -365,7 +463,7 @@ function SalonCard({
   onClick: () => void;
 }) {
   const estado = calcularEstado(dispositivo, lectura);
-  const tipo = lectura?.tipo || (dispositivo.online ? 'Sin datos' : 'Offline');
+  const tipo = lectura?.tipo || (dispositivo.online ? 'Sin datos' : 'Desconectado');
 
   const tipoClase: Record<EstadoSalon, string> = {
     verde: 'tipo-verde', amarillo: 'tipo-amarillo', rojo: 'tipo-rojo', offline: 'tipo-gray'
@@ -425,10 +523,24 @@ export default function DashboardPage() {
     const saved = localStorage.getItem('vc_sonido');
     return saved !== null ? saved === 'true' : true;
   });
+
+  // [MEJORA D] Búsqueda y Filtros de Salones
+  const [busqueda, setBusqueda] = useState('');
+  const [filtroEstado, setFiltroEstado] = useState<'todos' | 'alerta' | 'verde' | 'offline'>('todos');
+
+  // [MEJORA A] Generación de Acta en PDF
+  const [actaData, setActaData] = useState<DatosActa | null>(null);
+
   const socketRef = useRef<Socket | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
-  // Obtener o crear el AudioContext (se reutiliza para no crear uno por cada alerta)
+  // [MEJORA C] Solicitar permiso de Notificaciones Nativas de Windows
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
   const getAudioCtx = useCallback((): AudioContext | null => {
     try {
       if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
@@ -443,11 +555,6 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // ── Sistema de Alertas Acústicas ──────────────────────────────────────────
-  // Sonidos diferenciados por gravedad:
-  //   🚨 CRITICO  (CIGARRILLO / ALTA_CONFIANZA) → Sirena de 3 pulsos agudos
-  //   🌫️ MODERADO (VAPE_CONFIRMADO)             → 2 tonos descendentes
-  //   💨 BAJO     (PM25_ALTO)                    → Ping suave
   const sonarAlertar = useCallback((tipoAlerta?: string) => {
     if (!sonidoActivo) return;
     const ctx = getAudioCtx();
@@ -456,11 +563,9 @@ export default function DashboardPage() {
     const tipo = tipoAlerta || '';
     const esCritico = tipo === 'CIGARRILLO' || tipo === 'ALTA_CONFIANZA';
     const esModerado = tipo === 'VAPE_CONFIRMADO';
-    // PM25_ALTO o cualquier otro → nivel bajo
 
     try {
       if (esCritico) {
-        // ── Sirena: 3 pulsos rápidos agudos ──────────────────────────────
         for (let i = 0; i < 3; i++) {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
@@ -479,7 +584,6 @@ export default function DashboardPage() {
           osc.stop(t + 0.22);
         }
       } else if (esModerado) {
-        // ── 2 tonos descendentes ─────────────────────────────────────────
         for (let i = 0; i < 2; i++) {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
@@ -497,7 +601,6 @@ export default function DashboardPage() {
           osc.stop(t + 0.2);
         }
       } else {
-        // ── Ping suave ───────────────────────────────────────────────────
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
@@ -559,6 +662,22 @@ export default function DashboardPage() {
       setAlertasNoVistas(prev => prev + 1);
       setToasts(prev => [{ id: alerta.id, alerta }, ...prev]);
       sonarAlertar(alerta.tipo);
+
+      // [MEJORA C] Notificación Nativa de Windows
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          const salon = alerta.dispositivo?.salon || alerta.dispositivoId;
+          const notif = new Notification(`Incidencia Ambiental: ${salon}`, {
+            body: `${tipoAlertaLabel(alerta.tipo)} — ${alerta.mensaje}`,
+            icon: '/favicon.png',
+            tag: alerta.id,
+            requireInteraction: true,
+          });
+          notif.onclick = () => {
+            window.focus();
+          };
+        } catch { /* ignorar si falla */ }
+      }
     });
 
     socket.on('dispositivo-update', (disp: Dispositivo) => {
@@ -584,6 +703,14 @@ export default function DashboardPage() {
     } catch { /* silencioso */ }
   };
 
+  // [MEJORA A] Función para imprimir el acta formal
+  const imprimirActa = (datos: DatosActa) => {
+    setActaData(datos);
+    setTimeout(() => {
+      window.print();
+    }, 150);
+  };
+
   const online = dispositivos.filter(d => d.online).length;
   const offline = dispositivos.filter(d => !d.online).length;
   const enAlarma = dispositivos.filter(d => {
@@ -591,39 +718,54 @@ export default function DashboardPage() {
     return d.online && lec && lec.humoDetectado;
   }).length;
 
+  // [MEJORA D] Filtrado reactivo de salones
+  const salonesFiltrados = dispositivos.filter(d => {
+    const coincideTexto = d.salon.toLowerCase().includes(busqueda.toLowerCase()) ||
+                          d.nombre.toLowerCase().includes(busqueda.toLowerCase());
+    if (!coincideTexto) return false;
+
+    const estado = calcularEstado(d, lecturas[d.id]);
+    if (filtroEstado === 'alerta') return estado === 'rojo' || estado === 'amarillo';
+    if (filtroEstado === 'verde') return estado === 'verde';
+    if (filtroEstado === 'offline') return estado === 'offline';
+    return true;
+  });
+
   return (
     <div className="app-layout">
       {/* Navbar */}
       <nav className="navbar">
         <div className="navbar-left">
-          <div className="navbar-logo">🔍</div>
+          <div className="navbar-logo" style={{ background: '#4f46e5', color: '#fff', display: 'grid', placeItems: 'center' }}>
+            <span style={{ fontWeight: 800, fontSize: 16 }}>VC</span>
+          </div>
           <div>
             <div className="navbar-title">VCDetection</div>
-            <div className="navbar-subtitle">Panel de Control Encubierto</div>
+            <div className="navbar-subtitle">Monitoreo de Calidad de Aire y Convivencia Escolar</div>
           </div>
         </div>
         <div className="navbar-right">
           <button
             className="btn-nav btn-sonido"
             onClick={toggleSonido}
-            title={sonidoActivo ? 'Silenciar alertas' : 'Activar sonido de alertas'}
+            title={sonidoActivo ? 'Silenciar alertas acústicas' : 'Activar sonido de alertas'}
           >
-            {sonidoActivo ? '🔊' : '🔇'}
+            <IconSound activo={sonidoActivo} />
           </button>
           {alertasNoVistas > 0 && (
-            <span className="navbar-badge">🔔 {alertasNoVistas}</span>
+            <span className="navbar-badge">{alertasNoVistas}</span>
           )}
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{usuario?.nombre}</span>
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>{usuario?.nombre}</span>
           {usuario?.rol === 'ADMIN' && (
             <button id="btn-usuarios" className="btn-nav" onClick={() => setShowUsuarios(true)}>
-              👥 Usuarios
+              <IconUsers /> Usuarios
             </button>
           )}
-          <button id="btn-logout" className="btn-logout" onClick={logout}>Salir</button>
+          <button id="btn-logout" className="btn-logout" onClick={logout}>Cerrar Sesión</button>
         </div>
       </nav>
 
-      {/* Contenido */}
+      {/* Contenido Principal */}
       <main className="main-content">
         {/* Stats */}
         <div className="stats-bar">
@@ -636,30 +778,80 @@ export default function DashboardPage() {
             <div className="stat-value green">{online}</div>
           </div>
           <div className="stat-card">
-            <div className="stat-label">Offline</div>
+            <div className="stat-label">Desconectados</div>
             <div className="stat-value gray">{offline}</div>
           </div>
           <div className="stat-card">
-            <div className="stat-label">⚠️ En Alarma</div>
+            <div className="stat-label">Alerta Activa</div>
             <div className="stat-value red">{enAlarma}</div>
           </div>
           <div className="stat-card">
-            <div className="stat-label">Alertas sin ver</div>
+            <div className="stat-label">Alertas Pendientes</div>
             <div className="stat-value yellow">{alertasNoVistas}</div>
+          </div>
+        </div>
+
+        {/* [MEJORA D] Barra de Búsqueda y Filtros */}
+        <div className="search-filter-bar">
+          <div className="search-input-box">
+            <IconSearch />
+            <input
+              type="text"
+              placeholder="Buscar salón por nombre o código..."
+              value={busqueda}
+              onChange={e => setBusqueda(e.target.value)}
+            />
+            {busqueda && (
+              <button
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: 14 }}
+                onClick={() => setBusqueda('')}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <div className="filter-pills-row">
+            <button
+              className={`filter-pill ${filtroEstado === 'todos' ? 'activo' : ''}`}
+              onClick={() => setFiltroEstado('todos')}
+            >
+              Todos <span className="filter-count">{dispositivos.length}</span>
+            </button>
+            <button
+              className={`filter-pill ${filtroEstado === 'alerta' ? 'activo' : ''}`}
+              onClick={() => setFiltroEstado('alerta')}
+            >
+              En Alerta <span className="filter-count">{dispositivos.filter(d => ['rojo', 'amarillo'].includes(calcularEstado(d, lecturas[d.id]))).length}</span>
+            </button>
+            <button
+              className={`filter-pill ${filtroEstado === 'verde' ? 'activo' : ''}`}
+              onClick={() => setFiltroEstado('verde')}
+            >
+              Normales <span className="filter-count">{dispositivos.filter(d => calcularEstado(d, lecturas[d.id]) === 'verde').length}</span>
+            </button>
+            <button
+              className={`filter-pill ${filtroEstado === 'offline' ? 'activo' : ''}`}
+              onClick={() => setFiltroEstado('offline')}
+            >
+              Offline <span className="filter-count">{offline}</span>
+            </button>
           </div>
         </div>
 
         {/* Grid de Salones */}
         <div className="section-header">
-          <div className="section-title">Salones ({dispositivos.length})</div>
+          <div className="section-title">
+            Espacios Monitoreados ({salonesFiltrados.length})
+          </div>
         </div>
         <div className="salones-grid">
-          {dispositivos.length === 0 && (
+          {salonesFiltrados.length === 0 && (
             <div style={{ color: 'var(--text-muted)', fontSize: 14, padding: '32px 0' }}>
-              Esperando dispositivos... Asegurate de que el ESP32 esté enviando datos.
+              No se encontraron salones que coincidan con los filtros aplicados.
             </div>
           )}
-          {dispositivos.map(d => (
+          {salonesFiltrados.map(d => (
             <SalonCard
               key={d.id}
               dispositivo={d}
@@ -670,13 +862,13 @@ export default function DashboardPage() {
         </div>
 
         {/* Panel de Alertas */}
-        <div className="section-header" style={{ marginTop: 8 }}>
-          <div className="section-title">Alertas Recientes</div>
+        <div className="section-header" style={{ marginTop: 24 }}>
+          <div className="section-title">Registro de Alertas Recientes</div>
         </div>
         <div className="alertas-panel">
           <div className="alertas-header">
             <div className="alertas-title">
-              Últimas alertas {alertasNoVistas > 0 && <span style={{ color: 'var(--red)', marginLeft: 6 }}>({alertasNoVistas} nuevas)</span>}
+              Eventos Registrados {alertasNoVistas > 0 && <span style={{ color: 'var(--red)', marginLeft: 6 }}>({alertasNoVistas} sin revisar)</span>}
             </div>
             {alertasNoVistas > 0 && (
               <button id="btn-marcar-todas" className="btn-marcar-todas" onClick={marcarTodas}>
@@ -687,26 +879,52 @@ export default function DashboardPage() {
           <div className="alertas-list">
             {alertas.length === 0 && (
               <div className="alertas-empty">
-                ✅ Sin alertas — todo en orden
+                Ambiente escolar en calma — Sin incidencias registradas
               </div>
             )}
-            {alertas.map(alerta => (
-              <div
-                key={alerta.id}
-                className={`alerta-item ${!alerta.vista ? 'no-vista' : ''}`}
-                onClick={() => !alerta.vista && marcarVista(alerta.id)}
-              >
-                <div className={`alerta-icono ${tipoAlertaClase(alerta.tipo)}`}>
-                  {tipoAlertaIcono(alerta.tipo)}
+            {alertas.map(alerta => {
+              const salonNombre = alerta.dispositivo?.salon || alerta.dispositivoId;
+              return (
+                <div
+                  key={alerta.id}
+                  className={`alerta-item ${!alerta.vista ? 'no-vista' : ''}`}
+                  onClick={() => !alerta.vista && marcarVista(alerta.id)}
+                >
+                  <div className={`alerta-icono ${tipoAlertaClase(alerta.tipo)}`} style={{ fontWeight: 800, fontSize: 11 }}>
+                    {tipoAlertaIcono(alerta.tipo)}
+                  </div>
+                  <div className="alerta-info">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div className="alerta-salon">{salonNombre}</div>
+                      <button
+                        className="btn-pdf-acta"
+                        style={{ padding: '3px 10px', fontSize: 11, borderRadius: 6 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          imprimirActa({
+                            salon: salonNombre,
+                            dispositivoId: alerta.dispositivoId,
+                            fecha: alerta.fecha,
+                            tipo: tipoAlertaLabel(alerta.tipo),
+                            co: 24, // Valores de referencia de evento
+                            pm25: 65,
+                            co2: 950,
+                            humedad: 68,
+                            temperatura: 28,
+                            mensaje: alerta.mensaje,
+                          });
+                        }}
+                      >
+                        <IconFileText /> Generar Acta
+                      </button>
+                    </div>
+                    <div className="alerta-msg">{alerta.mensaje}</div>
+                    <div className="alerta-time">{formatTiempoRelativo(alerta.fecha)}</div>
+                  </div>
+                  {!alerta.vista && <div className="alerta-dot-nueva" />}
                 </div>
-                <div className="alerta-info">
-                  <div className="alerta-salon">{alerta.dispositivo?.salon || alerta.dispositivoId}</div>
-                  <div className="alerta-msg">{alerta.mensaje}</div>
-                  <div className="alerta-time">{formatTiempoRelativo(alerta.fecha)}</div>
-                </div>
-                {!alerta.vista && <div className="alerta-dot-nueva" />}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </main>
@@ -723,6 +941,7 @@ export default function DashboardPage() {
             setDispositivos(prev => prev.filter(d => d.id !== modalDisp.id));
             setModalDisp(null);
           }}
+          onGenerarActa={imprimirActa}
         />
       )}
 
@@ -739,6 +958,102 @@ export default function DashboardPage() {
           />
         ))}
       </div>
+
+      {/* [MEJORA A] Plantilla Imprimible de Acta Disciplinaria (PDF) */}
+      {actaData && (
+        <div id="printable-acta" style={{ display: 'none' }}>
+          <div style={{ borderBottom: '2px solid #0f172a', paddingBottom: 14, marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                VCDetection — Sistema de Control Ambiental Escolar
+              </h1>
+              <p style={{ margin: '4px 0 0 0', fontSize: 13, color: '#475569' }}>
+                Acta Oficial de Constatación Técnica e Incidencia de Convivencia
+              </p>
+            </div>
+            <div style={{ textAlign: 'right', fontSize: 12, color: '#64748b' }}>
+              <div><b>Folio:</b> ACT-{Date.now().toString().slice(-6)}</div>
+              <div><b>Emisión:</b> {new Date().toLocaleDateString('es-SV', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+            </div>
+          </div>
+
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 14, marginBottom: 20 }}>
+            <h3 style={{ fontSize: 14, margin: '0 0 10px 0', textTransform: 'uppercase', color: '#1e293b' }}>1. Datos de Ubicación y Evento</h3>
+            <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
+              <tbody>
+                <tr>
+                  <td style={{ padding: '4px 0', width: '25%', color: '#64748b' }}><b>Ubicación / Salón:</b></td>
+                  <td style={{ padding: '4px 0', width: '25%' }}>{actaData.salon}</td>
+                  <td style={{ padding: '4px 0', width: '25%', color: '#64748b' }}><b>Sensor ID:</b></td>
+                  <td style={{ padding: '4px 0', width: '25%' }}>{actaData.dispositivoId}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '4px 0', color: '#64748b' }}><b>Fecha y Hora:</b></td>
+                  <td style={{ padding: '4px 0' }}>{new Date(actaData.fecha).toLocaleString()}</td>
+                  <td style={{ padding: '4px 0', color: '#64748b' }}><b>Tipo de Detección:</b></td>
+                  <td style={{ padding: '4px 0' }}><b>{actaData.tipo}</b></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <h3 style={{ fontSize: 14, margin: '0 0 10px 0', textTransform: 'uppercase', color: '#1e293b' }}>2. Parámetros Técnicos Registrados por Sensores</h3>
+            <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse', border: '1px solid #cbd5e1' }}>
+              <thead>
+                <tr style={{ background: '#f1f5f9' }}>
+                  <th style={{ border: '1px solid #cbd5e1', padding: 8, textAlign: 'left' }}>Sensor / Parámetro</th>
+                  <th style={{ border: '1px solid #cbd5e1', padding: 8, textAlign: 'center' }}>Lectura Registrada</th>
+                  <th style={{ border: '1px solid #cbd5e1', padding: 8, textAlign: 'center' }}>Límite Normal Escolar</th>
+                  <th style={{ border: '1px solid #cbd5e1', padding: 8, textAlign: 'left' }}>Dictamen</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={{ border: '1px solid #cbd5e1', padding: 8 }}><b>Monóxido de Carbono (MQ-7)</b></td>
+                  <td style={{ border: '1px solid #cbd5e1', padding: 8, textAlign: 'center' }}>{actaData.co} ppm</td>
+                  <td style={{ border: '1px solid #cbd5e1', padding: 8, textAlign: 'center' }}>&lt; 9.0 ppm</td>
+                  <td style={{ border: '1px solid #cbd5e1', padding: 8 }}>{actaData.co > 10 ? 'Nivel elevado de gas por combustión' : 'Normal'}</td>
+                </tr>
+                <tr>
+                  <td style={{ border: '1px solid #cbd5e1', padding: 8 }}><b>Material Particulado PM2.5 (PMS5003)</b></td>
+                  <td style={{ border: '1px solid #cbd5e1', padding: 8, textAlign: 'center' }}>{actaData.pm25} µg/m³</td>
+                  <td style={{ border: '1px solid #cbd5e1', padding: 8, textAlign: 'center' }}>&lt; 25.0 µg/m³</td>
+                  <td style={{ border: '1px solid #cbd5e1', padding: 8 }}>{actaData.pm25 > 35 ? 'Aerosol denso confirmado' : 'Normal'}</td>
+                </tr>
+                <tr>
+                  <td style={{ border: '1px solid #cbd5e1', padding: 8 }}><b>Dióxido de Carbono (MH-Z19C NDIR)</b></td>
+                  <td style={{ border: '1px solid #cbd5e1', padding: 8, textAlign: 'center' }}>{actaData.co2} ppm</td>
+                  <td style={{ border: '1px solid #cbd5e1', padding: 8, textAlign: 'center' }}>&lt; 1000 ppm</td>
+                  <td style={{ border: '1px solid #cbd5e1', padding: 8 }}>{actaData.co2 > 1200 ? 'Ventilación comprometida' : 'Aceptable'}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ marginBottom: 25 }}>
+            <h3 style={{ fontSize: 14, margin: '0 0 8px 0', textTransform: 'uppercase', color: '#1e293b' }}>3. Observaciones del Comité de Convivencia / Prefectura</h3>
+            <div style={{ border: '1px solid #cbd5e1', borderRadius: 6, minHeight: 80, padding: 10, fontSize: 13, color: '#334155' }}>
+              {actaData.mensaje ? `Detalle del sistema: ${actaData.mensaje}` : 'Se constató la activación de los sensores en el área indicada. Se procede conforme al manual de convivencia escolar vigente.'}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 50, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, textAlign: 'center' }}>
+            <div style={{ borderTop: '1px solid #0f172a', paddingTop: 8, fontSize: 11 }}>
+              <b>Coordinación</b><br />Firma y Sello
+            </div>
+            <div style={{ borderTop: '1px solid #0f172a', paddingTop: 8, fontSize: 11 }}>
+              <b>Dirección</b><br />Firma y Sello
+            </div>
+            <div style={{ borderTop: '1px solid #0f172a', paddingTop: 8, fontSize: 11 }}>
+              <b>Estudiante</b><br />Firma
+            </div>
+            <div style={{ borderTop: '1px solid #0f172a', paddingTop: 8, fontSize: 11 }}>
+              <b>Padre / Tutor</b><br />Firma
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

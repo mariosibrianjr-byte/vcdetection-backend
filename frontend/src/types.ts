@@ -60,22 +60,22 @@ export function calcularEstado(dispositivo: Dispositivo, lectura?: Lectura): Est
 
 export function tipoAlertaLabel(tipo: string): string {
   const map: Record<string, string> = {
-    VAPE_CONFIRMADO: '🌫️ Vape Confirmado',
-    CIGARRILLO: '🚬 Cigarrillo',
-    ALTA_CONFIANZA: '🚨 Alta Confianza',
-    PM25_ALTO: '💨 PM2.5 Alto',
+    VAPE_CONFIRMADO: 'Vape Confirmado',
+    CIGARRILLO: 'Cigarrillo / Combustión',
+    ALTA_CONFIANZA: 'Detección Alta Confianza',
+    PM25_ALTO: 'Nivel PM2.5 Elevado',
   };
   return map[tipo] || tipo;
 }
 
 export function tipoAlertaIcono(tipo: string): string {
   const map: Record<string, string> = {
-    VAPE_CONFIRMADO: '🌫️',
-    CIGARRILLO: '🚬',
-    ALTA_CONFIANZA: '🚨',
-    PM25_ALTO: '💨',
+    VAPE_CONFIRMADO: 'VP',
+    CIGARRILLO: 'CG',
+    ALTA_CONFIANZA: 'AC',
+    PM25_ALTO: 'PM',
   };
-  return map[tipo] || '⚠️';
+  return map[tipo] || 'AL';
 }
 
 export function tipoAlertaClase(tipo: string): string {

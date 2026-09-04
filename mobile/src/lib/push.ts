@@ -29,16 +29,17 @@ export async function registrarPushToken(authToken: string): Promise<void> {
       return;
     }
 
-    // Canal Android con el mismo ID que usa el backend al enviar
+    // Canal Android de ALTA PRIORIDAD con vibración de emergencia
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('alertas_vcdetection', {
-        name: 'Alertas de humo',
-        description: 'Notificaciones de detección de vape/cigarrillo',
+        name: 'Alertas críticas de humo',
+        description: 'Notificaciones prioritarias de detección de vape/cigarrillo',
         importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#f43f5e',
+        vibrationPattern: [0, 600, 200, 600, 200, 1000],
+        lightColor: '#ef4444',
         sound: 'default',
         enableVibrate: true,
+        bypassDnd: true,
         lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       });
     }

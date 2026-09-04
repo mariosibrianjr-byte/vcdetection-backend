@@ -14,23 +14,52 @@ import { Dispositivo, Lectura, Alerta, calcularEstado, EstadoSalon, tipoAlertaIc
 type RootStackParamList = { Dashboard: undefined; DetalleSalon: { dispositivo: Dispositivo }; Alertas: undefined; Usuarios: undefined; };
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Dashboard'>;
 
-// ─── Toast de Alerta (estilo PC: blanco con borde rojo) ──────────────────────
-function ToastAlerta({ alerta, onDismiss }: { alerta: Alerta; onDismiss: () => void }) {
+// ─── Toast de Alerta con Acciones Rápidas ──────────────────────────────────
+function ToastAlerta({
+  alerta,
+  onDismiss,
+  onVoyEnCamino,
+}: {
+  alerta: Alerta;
+  onDismiss: () => void;
+  onVoyEnCamino: (salon: string, id: string) => void;
+}) {
   useEffect(() => {
-    const t = setTimeout(onDismiss, 8000);
+    const t = setTimeout(onDismiss, 9000);
     return () => clearTimeout(t);
   }, [onDismiss]);
 
   const salon = alerta.dispositivo?.salon || alerta.dispositivoId;
   return (
-    <TouchableOpacity style={styles.toast} onPress={onDismiss} activeOpacity={0.9}>
-      <Text style={styles.toastIcon}>{tipoAlertaIcono(alerta.tipo)}</Text>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.toastTitle}>{tipoAlertaLabel(alerta.tipo)}</Text>
-        <Text style={styles.toastBody}>{salon}: {alerta.mensaje.slice(0, 80)}</Text>
-        <Text style={styles.toastTime}>{formatTiempoRelativo(alerta.fecha)}</Text>
+    <View style={styles.toast}>
+      <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
+        <View style={styles.toastIconBadge}>
+          <Text style={styles.toastIconText}>{tipoAlertaIcono(alerta.tipo)}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.toastTitle}>{tipoAlertaLabel(alerta.tipo)}</Text>
+          <Text style={styles.toastBody}>{salon}: {alerta.mensaje.slice(0, 85)}</Text>
+          <Text style={styles.toastTime}>{formatTiempoRelativo(alerta.fecha)}</Text>
+        </View>
       </View>
-    </TouchableOpacity>
+
+      <View style={styles.toastActionRow}>
+        <TouchableOpacity
+          style={styles.toastBtnCamino}
+          onPress={() => onVoyEnCamino(salon, alerta.id)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.toastBtnCaminoText}>Voy en camino</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.toastBtnDismiss}
+          onPress={onDismiss}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.toastBtnDismissText}>Descartar</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 
@@ -114,7 +143,7 @@ function SalonCard({ disp, lectura, onPress }: { disp: Dispositivo, lectura?: Le
         />
       </View>
 
-      <Text style={styles.salonTiempo}>⏱ {formatTiempoRelativo(disp.ultimaConexion)}</Text>
+      <Text style={styles.salonTiempo}>{formatTiempoRelativo(disp.ultimaConexion)}</Text>
     </TouchableOpacity>
   );
 }
@@ -195,7 +224,8 @@ export default function DashboardScreen() {
       return [...filtradas, ...prev].slice(0, 30);
     });
     setToasts(prev => [...nuevas.filter(a => !prev.some(p => p.id === a.id)), ...prev].slice(0, 3));
-    Vibration.vibrate([250, 120, 250]);
+    // [MEJORA A] Vibración de alerta crítica continua
+    Vibration.vibrate([0, 600, 200, 600, 200, 1000]);
     fetchData();
   }, [socketCtx?.alertasNuevas]);
 
@@ -234,7 +264,7 @@ export default function DashboardScreen() {
             end={{ x: 1, y: 1 }}
             style={styles.navbarLogo}
           >
-            <Text style={{ fontSize: 15 }}>🔍</Text>
+            <Text style={{ fontSize: 13, color: '#fff', fontWeight: '800' }}>VC</Text>
           </LinearGradient>
           <View>
             <Text style={styles.navbarTitle}>VCDetection</Text>
@@ -244,7 +274,7 @@ export default function DashboardScreen() {
         <View style={styles.navbarRight}>
           {usuario?.rol === 'ADMIN' && (
             <TouchableOpacity style={styles.btnNav} onPress={() => navigation.navigate('Usuarios')}>
-              <Text style={styles.btnNavText}>👥 Usuarios</Text>
+              <Text style={styles.btnNavText}>Usuarios</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity style={styles.btnLogout} onPress={logout}>
@@ -262,7 +292,7 @@ export default function DashboardScreen() {
           <StatCard label="Total Salones" value={String(dispositivos.length)} color={COLORS.blue} />
           <StatCard label="En Línea" value={String(online)} color={COLORS.green} />
           <StatCard label="Offline" value={String(offline)} color={COLORS.gray} />
-          <StatCard label="⚠️ En Alarma" value={String(enAlarma)} color={COLORS.red} />
+          <StatCard label="Alerta Activa" value={String(enAlarma)} color={COLORS.red} />
           <StatCard label="Sin ver" value={String(alertasNoVistas)} color={COLORS.yellow} />
         </ScrollView>
 
@@ -300,8 +330,8 @@ export default function DashboardScreen() {
 
           {alertas.length === 0 && (
             <View style={styles.alertasEmpty}>
-              <Text style={{ fontSize: 26 }}>✅</Text>
-              <Text style={styles.alertasEmptyTexto}>Sin alertas — todo en orden</Text>
+              <View style={styles.okBadge}><Text style={styles.okBadgeText}>OK</Text></View>
+              <Text style={styles.alertasEmptyTexto}>Sin alertas — ambiente en orden</Text>
             </View>
           )}
 
@@ -335,7 +365,15 @@ export default function DashboardScreen() {
       {/* Toasts flotantes */}
       <View style={styles.toastContainer} pointerEvents="box-none">
         {toasts.map(t => (
-          <ToastAlerta key={t.id} alerta={t} onDismiss={() => setToasts(prev => prev.filter(x => x.id !== t.id))} />
+          <ToastAlerta
+            key={t.id}
+            alerta={t}
+            onDismiss={() => setToasts(prev => prev.filter(x => x.id !== t.id))}
+            onVoyEnCamino={(salon, id) => {
+              marcarVista(id);
+              setToasts(prev => prev.filter(x => x.id !== id));
+            }}
+          />
         ))}
       </View>
     </View>
@@ -533,21 +571,61 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   toast: {
-    flexDirection: 'row',
-    gap: 12,
     backgroundColor: 'rgba(255,255,255,0.97)',
     borderRadius: 14,
     padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(244,63,94,0.28)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(244,63,94,0.3)',
     shadowColor: '#1e293b',
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.14,
     shadowRadius: 44,
     elevation: 8,
   },
-  toastIcon: { fontSize: 22 },
+  toastIconBadge: {
+    backgroundColor: COLORS.redSoft,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(244,63,94,0.2)',
+  },
+  toastIconText: { fontSize: 11, fontWeight: '800', color: COLORS.red },
   toastTitle: { fontSize: 13.5, fontWeight: '800', color: COLORS.red },
   toastBody: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
   toastTime: { fontSize: 11, color: COLORS.textMuted, marginTop: 3 },
+  toastActionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  toastBtnCamino: {
+    backgroundColor: '#4f46e5',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  toastBtnCaminoText: { color: '#ffffff', fontSize: 11.5, fontWeight: '700' },
+  toastBtnDismiss: {
+    backgroundColor: COLORS.bgSecondary,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  toastBtnDismissText: { color: COLORS.textSecondary, fontSize: 11.5, fontWeight: '600' },
+  okBadge: {
+    backgroundColor: COLORS.greenSoft,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.25)',
+    marginBottom: 4,
+  },
+  okBadgeText: { color: COLORS.green, fontWeight: '800', fontSize: 12 },
 });
