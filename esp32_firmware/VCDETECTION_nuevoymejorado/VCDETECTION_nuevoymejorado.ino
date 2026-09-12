@@ -6,14 +6,11 @@
  * Hardware:
  *   - ESP32 (Microcontrolador Principal)
  *   - MQ7     (GPIO 32)            — Detecta CO (monóxido de carbono) — firma de combustión
- *   - DHT22   (GPIO 5)             — Temperatura y Humedad (opcional con R pull-up 10k)
+ *   - DHT22   (GPIO 5)             — Temperatura y Humedad (requiere R pull-up 10k)
  *   - PMS5003 (RX: GPIO16, TX: GPIO17) — Partículas láser PM1.0, PM2.5, PM10 (UART2)
- *   - MH-Z19C (RX: GPIO26, TX: GPIO27) — CO2 NDIR en ppm (UART1)
  * 
  * Mejoras aplicadas:
  *   [1] SENSORES:
- *       - MH-Z19C: Auto-calibración (ABC) DESACTIVADA para evitar falsos baselines en
- *         aulas cerradas. Validación de rangos (350 - 5000 ppm).
  *       - MQ-7: Filtro por sobremuestreo y mediana recortada (Trimmed Median Filter)
  *         en ADC para eliminar ruido de alta frecuencia inducido por el WiFi del ESP32.
  *       - PMS5003: Checksum estricto, gestión de buffer no bloqueante y temporización.
@@ -33,7 +30,6 @@
 #include <DHT.h>
 #include <esp_task_wdt.h>
 #include <time.h>
-#include <MHZ19.h>
 #include <Preferences.h>
 #include <WebServer.h>
 #include <DNSServer.h>
@@ -62,13 +58,11 @@ const int MQ7_PIN   = 32;   // CO — monóxido de carbono
 const int DHT_PIN   = 5;    // DHT22 Datos (requiere R 10k pull-up a 3.3V)
 #define DHT_TYPE DHT22
 
-// Flag para DHT22: poner en true si tienes DHT22 conectado y con resistencia pull-up
-const bool DHT_CONECTADO = false;
+// Flag para DHT22: ahora activado — sensor conectado y funcionando
+const bool DHT_CONECTADO = true;
 
 #define PMS_RX 16           // Serial2 RX -> PMS5003 TX
 #define PMS_TX 17           // Serial2 TX -> PMS5003 RX
-#define CO2_RX 26           // MH-Z19C: cable verde (TXD del sensor) -> pin 26
-#define CO2_TX 27           // MH-Z19C: cable azul  (RXD del sensor) -> pin 27
 
 // ─── Tiempos y Watchdog ───────────────────────────────────────────────────────
 const unsigned long INTERVALO_MUESTREO = 5000;    // 5 segundos entre lecturas
@@ -84,11 +78,6 @@ const int   daylightOffset_sec = 0;
 DHT dht(DHT_PIN, DHT_TYPE);
 unsigned long ultimoMuestreo = 0;
 
-// MH-Z19C (CO2) por UART1
-HardwareSerial mhzSerial(1);
-MHZ19 myMHZ19;
-int   co2ppm = -1;   // -1 = sin lectura válida todavía
-
 // Historial de CO para picos súbitos
 float historialCO[5] = {0};
 int   indiceGases    = 0;
@@ -97,7 +86,6 @@ int   indiceGases    = 0;
 const int NUM_MUESTRAS_BASELINE = 60;
 float historialBase7[NUM_MUESTRAS_BASELINE]    = {0};   // CO (MQ7)
 float historialBasePM25[NUM_MUESTRAS_BASELINE] = {0};   // PM2.5 (PMS5003)
-float historialBaseCO2[NUM_MUESTRAS_BASELINE]  = {0};   // CO2 (MH-Z19C)
 int   indiceBase      = 0;
 bool  bufferBaseLleno = false;
 
@@ -115,7 +103,7 @@ int   indiceHumRapido = 0;
 int contadorHumo = 0;
 const int MUESTRAS_CONFIRMACION = 2;
 
-// Período de precalentamiento (3 minutos para MQ7 y cámara NDIR)
+// Período de precalentamiento (3 minutos para MQ7)
 const unsigned long TIEMPO_CALENTAMIENTO_MS = 3UL * 60UL * 1000UL;
 unsigned long inicioSistema = 0;
 
@@ -142,7 +130,6 @@ struct Lectura {
   int    pm1;
   int    pm25;
   int    pm10;
-  int    co2;
   String timestamp;
 };
 
@@ -153,7 +140,7 @@ int colaCount = 0;
 
 // ─── Prototipos ───────────────────────────────────────────────────────────────
 void  cargarConfiguracion();
-void  guardarConfiguracion();
+void  guardarConfiguracion(String id, String ssid, String pass, String srv, String key);
 void  iniciarPortalConfiguracion();
 void  configurarRutasPortal();
 void  iniciarArduinoOTA();
@@ -181,27 +168,19 @@ void setup() {
   // 1. Cargar configuración desde Flash NVS
   cargarConfiguracion();
 
-  // 2. Iniciar puertos serie para sensores
+  // 2. Iniciar puerto serie para PMS5003
   Serial2.begin(9600, SERIAL_8N1, PMS_RX, PMS_TX);
-  mhzSerial.begin(9600, SERIAL_8N1, CO2_RX, CO2_TX);
 
-  // 3. Iniciar MH-Z19C
-  myMHZ19.begin(mhzSerial);
-  // [MEJORA CRÍTICA 1] DESACTIVAR ABC (Auto-calibración).
-  // Evita que el sensor se descalibre en salones cerrados.
-  myMHZ19.autoCalibration(false);
-  Serial.println("[MH-Z19C] Calibración automática (ABC) DESACTIVADA.");
-
-  // 4. Iniciar DHT22 si está activado
+  // 3. Iniciar DHT22 si está activado
   if (DHT_CONECTADO) {
     dht.begin();
   }
 
-  // 5. Configurar ADC para MQ7
+  // 4. Configurar ADC para MQ7
   analogReadResolution(12);
   analogSetAttenuation(ADC_11db);
 
-  // 6. Configurar Watchdog Timer
+  // 5. Configurar Watchdog Timer
   esp_task_wdt_config_t wdt_config = {
     .timeout_ms    = WDT_TIMEOUT * 1000,
     .idle_core_mask = (1 << 0),
@@ -210,7 +189,7 @@ void setup() {
   esp_task_wdt_reconfigure(&wdt_config);
   esp_task_wdt_add(NULL);
 
-  // 7. Intentar conexión WiFi inicial
+  // 6. Intentar conexión WiFi inicial
   WiFi.mode(WIFI_STA);
   Serial.printf("[WiFi] Conectando a red: %s\n", wifiSSID.c_str());
   WiFi.begin(wifiSSID.c_str(), wifiPassword.c_str());
@@ -298,17 +277,8 @@ void leerSensoresYProcesar() {
   // 2. MQ7 con sobremuestreo y mediana recortada
   float ppmCO = leerPPM(MQ7_PIN, 10.0, 27.5, 99.042, -1.518);
 
-  // 3. MH-Z19C (CO2) con validación de rango estricta
-  int lecturaCO2 = myMHZ19.getCO2();
-  if (myMHZ19.errorCode == RESULT_OK && lecturaCO2 >= 350 && lecturaCO2 <= 6000) {
-    co2ppm = lecturaCO2;
-  } else if (myMHZ19.errorCode != RESULT_OK) {
-    Serial.printf("[MH-Z19C] Código de estado: %d\n", myMHZ19.errorCode);
-  }
-
   bool co_valido      = (ppmCO >= 0);
   bool datosPmValidos = (pm1_0 != -1 && pm2_5 != -1 && pm10 != -1);
-  bool co2_valido     = (co2ppm > 0);
 
   if (co_valido) {
     historialCO[indiceGases % 5] = ppmCO;
@@ -318,23 +288,19 @@ void leerSensoresYProcesar() {
   // Baseline dinámico
   float basePrev7   = obtenerPromedio(historialBase7,    NUM_MUESTRAS_BASELINE, bufferBaseLleno, indiceBase);
   float basePrevPM  = obtenerPromedio(historialBasePM25, NUM_MUESTRAS_BASELINE, bufferBaseLleno, indiceBase);
-  float basePrevCO2 = obtenerPromedio(historialBaseCO2,  NUM_MUESTRAS_BASELINE, bufferBaseLleno, indiceBase);
 
   bool muestraNormal7   = !co_valido      || (basePrev7   <= 0) || (ppmCO  <= basePrev7  * 1.5);
   bool muestraNormalPM  = !datosPmValidos || (basePrevPM  <= 0) || (pm2_5  <= basePrevPM * 1.6);
-  bool muestraNormalCO2 = !co2_valido     || (basePrevCO2 <= 0) || (co2ppm <= basePrevCO2 * 1.15);
 
-  if (muestraNormal7 && muestraNormalPM && muestraNormalCO2) {
+  if (muestraNormal7 && muestraNormalPM) {
     if (co_valido)      historialBase7[indiceBase]    = ppmCO;
     if (datosPmValidos) historialBasePM25[indiceBase] = pm2_5;
-    if (co2_valido)     historialBaseCO2[indiceBase]  = co2ppm;
     indiceBase = (indiceBase + 1) % NUM_MUESTRAS_BASELINE;
     if (indiceBase == 0) bufferBaseLleno = true;
   }
 
   float base7   = basePrev7;
   float basePM  = basePrevPM;
-  float baseCO2 = basePrevCO2;
 
   bool sensoresCalientes = (millis() - inicioSistema) > TIEMPO_CALENTAMIENTO_MS;
 
@@ -349,7 +315,6 @@ void leerSensoresYProcesar() {
   bool humedadDisparo  = subidaHum || saltoHumRapido;
 
   bool subidaCO  = co_valido && (base7 > 1.0) && (ppmCO > base7 * 1.6);
-  bool subidaCO2 = co2_valido && (baseCO2 > 50.0) && (co2ppm > baseCO2 * 1.15);
 
   float ratioPM1_25      = (datosPmValidos && pm2_5 > 0) ? (float)pm1_0 / pm2_5 : -1;
   bool  subidaPM         = datosPmValidos && (basePM > 3.0) && (pm2_5 > basePM * 1.6);
@@ -359,12 +324,12 @@ void leerSensoresYProcesar() {
   bool  particulaDisparo = subidaPM || pmMuySaturado;
 
   bool humoCrudo = sensoresCalientes &&
-                   (subidaCO || subidaCO2 || humedadDisparo || particulaDisparo || picoGas);
+                   (subidaCO || humedadDisparo || particulaDisparo || picoGas);
 
   contadorHumo = humoCrudo ? contadorHumo + 1 : 0;
   bool humoConfirmado = contadorHumo >= MUESTRAS_CONFIRMACION;
 
-  int evidenciaCigarrillo = (subidaCO ? 2 : 0) + (particulaAncha ? 1 : 0) + (subidaCO2 ? 1 : 0);
+  int evidenciaCigarrillo = (subidaCO ? 2 : 0) + (particulaAncha ? 1 : 0);
   int evidenciaVape       = (particulaFina ? 2 : 0) + (humedadDisparo ? 2 : 0);
 
   String posibleCausa = "";
@@ -402,11 +367,10 @@ void leerSensoresYProcesar() {
   lec.pm1           = pm1_0;
   lec.pm25          = pm2_5;
   lec.pm10          = pm10;
-  lec.co2           = co2ppm;
   lec.timestamp     = getTimestampISO();
 
-  Serial.printf("[%s] MQ7:%.1f (Base:%.1f) | PM2.5:%d (Base:%.1f, ratio:%.2f) | CO2:%d | %s\n",
-                lec.timestamp.c_str(), ppmCO, base7, pm2_5, basePM, ratioPM1_25, co2ppm, tipo.c_str());
+  Serial.printf("[%s] MQ7:%.1f (Base:%.1f) | Hum:%.1f | PM2.5:%d (Base:%.1f, ratio:%.2f) | %s\n",
+                lec.timestamp.c_str(), ppmCO, base7, humedad, pm2_5, basePM, ratioPM1_25, tipo.c_str());
 
   // Agregar a cola circular
   colaOffline[colaTail] = lec;
@@ -418,7 +382,7 @@ void leerSensoresYProcesar() {
   }
 }
 
-// ─── [MEJORA CRÍTICA 2] MQ7 con Filtro de Mediana Recortada ──────────────────
+// ─── [MEJORA CRÍTICA] MQ7 con Filtro de Mediana Recortada ──────────────────
 float leerPPM(int pin, float RL, float RO, float A, float B) {
   const int NUM_MUESTRAS = 25;
   int lecturas[NUM_MUESTRAS];
@@ -459,7 +423,7 @@ float leerPPM(int pin, float RL, float RO, float A, float B) {
   return ppm;
 }
 
-// ─── [MEJORA CRÍTICA 3] PMS5003 con Checksum ────────────────────────────────
+// ─── [MEJORA CRÍTICA] PMS5003 con Checksum ────────────────────────────────
 void leerPMS5003() {
   while (Serial2.available() >= 32) {
     if (Serial2.read() != 0x42) continue;
@@ -671,7 +635,6 @@ bool enviarDatos(Lectura &lec) {
   doc["pm1"]           = lec.pm1;
   doc["pm25"]          = lec.pm25;
   doc["pm10"]          = lec.pm10;
-  doc["co2"]           = lec.co2;
   doc["timestamp"]     = lec.timestamp;
 
   String body;
