@@ -187,13 +187,13 @@ function SalonModal({
         i,
         co: parseFloat(l.ppm135.toFixed(1)),
         pm25: l.pm25 > 0 ? l.pm25 : 0,
-        co2: l.co2 > 0 ? l.co2 : 0,
+        humedad: l.humedad >= 0 ? l.humedad : 0,
       }))
     : histo.map(p => ({
         hora: new Date(p.hora).toLocaleString('es-SV', rango === '1' ? { hour: '2-digit', minute: '2-digit' } : { day: '2-digit', month: 'short', hour: '2-digit' }),
         co: p.ppm135,
         pm25: p.pm25 > 0 ? p.pm25 : 0,
-        co2: p.co2 > 0 ? p.co2 : 0,
+        humedad: p.humedad >= 0 ? p.humedad : 0,
       }));
 
   const tooltipStyle = {
@@ -263,6 +263,13 @@ function SalonModal({
               <div className="modal-metric-unit">ppm</div>
             </div>
             <div className="modal-metric-card">
+              <div className="modal-metric-label">Humedad</div>
+              <div className="modal-metric-val" style={{ color: '#0ea5e9' }}>
+                {lectura && lectura.humedad >= 0 ? `${lectura.humedad.toFixed(1)}%` : '--'}
+              </div>
+              <div className="modal-metric-unit">HR</div>
+            </div>
+            <div className="modal-metric-card">
               <div className="modal-metric-label">PM2.5</div>
               <div className="modal-metric-val" style={{ color: lectura && lectura.pm25 > 35 ? 'var(--red)' : 'var(--green)' }}>
                 {lectura && lectura.pm25 >= 0 ? lectura.pm25 : '--'}
@@ -277,11 +284,11 @@ function SalonModal({
               <div className="modal-metric-unit">µg/m³</div>
             </div>
             <div className="modal-metric-card">
-              <div className="modal-metric-label">CO₂</div>
-              <div className="modal-metric-val" style={{ color: lectura && lectura.co2 > 2000 ? 'var(--red)' : lectura && lectura.co2 >= 1000 ? 'var(--yellow)' : 'var(--green)' }}>
-                {lectura && lectura.co2 >= 0 ? lectura.co2 : '--'}
+              <div className="modal-metric-label">Temperatura</div>
+              <div className="modal-metric-val" style={{ color: 'var(--yellow)' }}>
+                {lectura && lectura.temperatura > -40 ? `${lectura.temperatura.toFixed(1)}°C` : '--'}
               </div>
-              <div className="modal-metric-unit">ppm</div>
+              <div className="modal-metric-unit">Ambiente</div>
             </div>
             <div className="modal-metric-card">
               <div className="modal-metric-label">Última señal</div>
@@ -298,7 +305,7 @@ function SalonModal({
           {!cargandoHisto && chartData.length > 1 && (
             <>
               <div className="chart-title">
-                {rango === 'live' ? `CO, CO₂ y PM2.5 en vivo (últimas ${chartData.length} lecturas)` : `Promedios por hora — últimos ${rango} día(s)`}
+                {rango === 'live' ? `CO, Humedad y PM2.5 en vivo (últimas ${chartData.length} lecturas)` : `Promedios por hora — últimos ${rango} día(s)`}
               </div>
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={chartData}>
@@ -306,7 +313,7 @@ function SalonModal({
                   <YAxis domain={['auto', 'auto']} tick={{ fill: '#94a3b8', fontSize: 11 }} width={40} />
                   <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: '#64748b', fontWeight: 600 }} />
                   <Line type="monotone" dataKey="co" stroke="var(--blue)" strokeWidth={2.5} dot={false} name="CO MQ7 (ppm)" />
-                  <Line type="monotone" dataKey="co2" stroke="var(--green)" strokeWidth={2.5} dot={false} name="CO₂ (ppm)" />
+                  <Line type="monotone" dataKey="humedad" stroke="#0ea5e9" strokeWidth={2.5} dot={false} name="Humedad (%)" />
                   <Line type="monotone" dataKey="pm25" stroke="var(--purple)" strokeWidth={2} dot={false} name="PM2.5 (µg/m³)" />
                 </LineChart>
               </ResponsiveContainer>
@@ -485,6 +492,10 @@ function SalonCard({
           <div className="metric-value">{lectura ? lectura.ppm135.toFixed(1) : '--'}<span className="metric-unit"> ppm</span></div>
         </div>
         <div className="metric">
+          <div className="metric-label">Humedad</div>
+          <div className="metric-value">{lectura && lectura.humedad >= 0 ? lectura.humedad.toFixed(0) : '--'}<span className="metric-unit"> %</span></div>
+        </div>
+        <div className="metric">
           <div className="metric-label">PM2.5</div>
           <div className="metric-value" style={{ color: lectura && lectura.pm25 > 35 ? 'var(--red)' : undefined }}>
             {lectura && lectura.pm25 >= 0 ? lectura.pm25 : '--'}<span className="metric-unit"> µg</span>
@@ -494,12 +505,6 @@ function SalonCard({
           <div className="metric-label">PM10</div>
           <div className="metric-value">
             {lectura && lectura.pm10 >= 0 ? lectura.pm10 : '--'}<span className="metric-unit"> µg</span>
-          </div>
-        </div>
-        <div className="metric">
-          <div className="metric-label">CO₂</div>
-          <div className="metric-value" style={{ color: lectura && lectura.co2 > 2000 ? 'var(--red)' : lectura && lectura.co2 >= 1000 ? 'var(--yellow)' : undefined }}>
-            {lectura && lectura.co2 >= 0 ? lectura.co2 : '--'}<span className="metric-unit"> ppm</span>
           </div>
         </div>
       </div>

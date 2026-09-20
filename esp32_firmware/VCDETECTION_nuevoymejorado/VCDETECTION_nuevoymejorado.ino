@@ -605,6 +605,7 @@ void iniciarArduinoOTA() {
 // ============================================================================
 void procesarCola() {
   while (colaCount > 0 && WiFi.status() == WL_CONNECTED) {
+    esp_task_wdt_reset();
     Lectura lec = colaOffline[colaHead];
     bool ok = enviarDatos(lec);
 
@@ -626,12 +627,12 @@ bool enviarDatos(Lectura &lec) {
 
   StaticJsonDocument<450> doc;
   doc["dispositivoId"] = dispositivoId;
-  doc["ppmCO"]         = round(lec.ppmCO * 100) / 100.0;
+  doc["ppmCO"]         = (lec.ppmCO >= 0) ? (round(lec.ppmCO * 100) / 100.0) : 0;
   doc["humoDetectado"] = lec.humoDetectado;
   doc["tipo"]          = lec.tipo;
   doc["picoSubito"]    = lec.picoSubito;
-  doc["temperatura"]   = round(lec.temperatura * 10) / 10.0;
-  doc["humedad"]       = round(lec.humedad * 10) / 10.0;
+  doc["temperatura"]   = (lec.temperatura > -40) ? (round(lec.temperatura * 10) / 10.0) : 0;
+  doc["humedad"]       = (lec.humedad >= 0) ? (round(lec.humedad * 10) / 10.0) : 0;
   doc["pm1"]           = lec.pm1;
   doc["pm25"]          = lec.pm25;
   doc["pm10"]          = lec.pm10;
