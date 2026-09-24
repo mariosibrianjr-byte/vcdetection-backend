@@ -2,19 +2,6 @@
  * ============================================================================
  * VCDETECTION — ESP32 Covert Sensor (VERSIÓN PROFESIONAL MEJORADA)
  * ============================================================================
- * 
- * Hardware:
- *   - ESP32 (Microcontrolador Principal)
- *   - MQ7     (GPIO 32)            — Detecta CO (monóxido de carbono)
- *   - DHT22   (GPIO 5)             — Temperatura y Humedad (R pull-up 10k)
- *   - PMS5003 (RX: GPIO16, TX: GPIO17) — Partículas PM1.0, PM2.5, PM10 (UART2)
- *
- * NUEVO v2.2:
- *   - Los sensores se leen SIEMPRE, con o sin WiFi.
- *   - Si no hay WiFi, los datos se imprimen por Serial (115200).
- *   - Menú Serial interactivo: [p]ortal, [r]econectar, [c]onfig, [h]elp.
- *   - Timestamp local HH:MM:SS basado en millis() cuando no hay NTP.
- * ============================================================================
  */
 
 #include <WiFi.h>
@@ -33,8 +20,8 @@ Preferences preferences;
 
 // Valores por defecto
 String dispositivoId = "SALON_01";
-String wifiSSID      = "SBIT";
-String wifiPassword  = "EaMjJd2020$";
+String wifiSSID      = "A16 de Mario";
+String wifiPassword  = "123456789";
 String serverUrl     = "https://vcdetection-backend.onrender.com/api/sensor/lectura";
 String deviceApiKey  = "QqDVPhcdVT3sVBEuB35M6GLHyR2Z7QpfLli637wSt4";
 String otaPassword   = "vcadmin2026";
@@ -48,61 +35,39 @@ const IPAddress apIP(192, 168, 4, 1);
 const IPAddress netMsk(255, 255, 255, 0);
 
 // ─── Pines de Hardware ────────────────────────────────────────────────────────
-const int MQ7_PIN        = 32;   // Entrada analógica (divisor de tensión del MQ-7)
-const int MQ7_HEATER_PIN = 33;   // *** NUEVO *** Salida PWM que controla el heater vía transistor/MOSFET
-const int MQ3_PIN = 35;   // *** NUEVO *** Entrada analógica del MQ-3 (alcohol/VOC, buena proxy para vape).
-                            // OJO: el AOUT del módulo puede acercarse a 5V. Usa un divisor resistivo
-                            // (ej. 10kΩ en serie + 20kΩ a GND) antes de meterlo a este GPIO,
-                            // o puedes dañar el ADC del ESP32 (máximo seguro: 3.3V).
-const int ALARMA_EXTERNA_PIN = 34; // Salida digital (DO) de un módulo sensor de sonido (ej. KY-038)
-                                     // escuchando la alarma de humo doméstica como respaldo/confirmación
+const int MQ7_PIN        = 32;   
+const int MQ7_HEATER_PIN = 33;   
+const int MQ3_PIN        = 35;   
+const int ALARMA_EXTERNA_PIN = 34; 
 const int DHT_PIN   = 5;
 #define DHT_TYPE DHT22
 
 const bool DHT_CONECTADO = true;
 
-// ─── *** NUEVO *** Ciclo de calentamiento del MQ-7 (datasheet: 60s@5V / 90s@1.4V) ─
-const unsigned long HEATER_HIGH_MS = 60000UL;  // Fase de "quemado" a ~5V
-const unsigned long HEATER_LOW_MS  = 90000UL;  // Fase de medición de CO a ~1.4V
-const unsigned long MARGEN_ESTABILIZACION_MS = 20000UL; // Tras pasar a 1.4V, esperar a que Rs se asiente
-const int HEATER_PWM_FREQ = 1000; // Hz (mucho mayor que la constante térmica del heater -> promedia bien)
-const int HEATER_PWM_RES  = 8;    // bits (0-255)
-const int HEATER_DUTY_HIGH = 255;                         // 100% duty ≈ 5V
-const int HEATER_DUTY_LOW  = (int)(255.0 * 1.4 / 5.0);    // ≈28% duty ≈ 1.4V promedio
+// ─── Ciclo de calentamiento del MQ-7 ─────────────────────────────────────────
+const unsigned long HEATER_HIGH_MS = 60000UL;  
+const unsigned long HEATER_LOW_MS  = 90000UL;  
+const unsigned long MARGEN_ESTABILIZACION_MS = 20000UL; 
+const int HEATER_PWM_FREQ = 1000; 
+const int HEATER_PWM_RES  = 8;    
+const int HEATER_DUTY_HIGH = 255;                         
+const int HEATER_DUTY_LOW  = (int)(255.0 * 1.4 / 5.0);    
 
-// *** MODO DEMO ***: si lo pones en 1, el heater se queda SIEMPRE en la fase
-// de ~1.4V (sin el "quemado" de 60s a 5V) y el CO se lee todo el tiempo, sin
-// huecos. Es útil para una presentación/demo urgente. Para uso real y de
-// largo plazo, vuelve a ponerlo en 0: el ciclo completo (60s/90s) ayuda a
-// mantener el sensor limpio y estable con el tiempo.
 #define MODO_DEMO_SIN_CICLO_HEATER 1
 
 enum EstadoCalentador { HEATER_ALTA, HEATER_BAJA };
 EstadoCalentador estadoCalentador   = HEATER_ALTA;
 unsigned long    tCambioCalentador  = 0;
-bool             ventanaMedicionValida = false; // true solo en la parte final y estable de la fase de 1.4V
+bool             ventanaMedicionValida = false; 
 
-// ─── *** NUEVO *** R0 calibrado (persistente en NVS, NO se recalcula solo) ───
-float r0MQ7 = -1.0; // kΩ. Se carga de NVS en setup(); -1 = sin calibrar
-const float RO_CLEAN_AIR_FACTOR = 27.5; // Rs/Ro en aire limpio (dato del datasheet MQ-7, NO es R0)
+// ─── R0 calibrado ────────────────────────────────────────────────────────────
+float r0MQ7 = -1.0; 
+const float RO_CLEAN_AIR_FACTOR = 27.5; 
 
-// ─── MODO DE OPERACIÓN SIN WIFI ──────────────────────────────────────────────
-// true  = si no hay WiFi, levanta el portal cautivo (modo configuración)
-// false = si no hay WiFi, sigue leyendo sensores y los imprime por Serial
 const bool ACTIVAR_PORTAL_CAUTIVO = false;
 
-// *** ATENCIÓN ***: el encabezado del archivo dice "PMS5003 (RX: GPIO16, TX: GPIO17)"
-// pero aquí se usan 26/27. Uno de los dos está mal. Confirma tu cableado físico
-// y deja SOLO el par correcto; un pin equivocado es la causa más probable de
-// que pm2_5 quede en -1 permanentemente (nunca llegan bytes válidos por Serial2).
 #define PMS_RX 26
 #define PMS_TX 27
-
-// *** NUEVO *** Desactiva el PMS5003 por completo mientras no lo revises/repares.
-// En 0: nunca se llama a leerPMS5003(), pm2_5/pm1_0/pm10 quedan fijos en -1,
-// y toda la lógica que depende de PM2.5 (particulaFina/Ancha, subidaPM) se
-// desactiva sola (ya está preparada para -1 = "sin datos"). Cuando lo arregles,
-// vuelve a poner esto en 1.
 #define PMS_HABILITADO 0
 
 // ─── Tiempos y Watchdog ───────────────────────────────────────────────────────
@@ -119,7 +84,6 @@ const int   daylightOffset_sec = 0;
 DHT dht(DHT_PIN, DHT_TYPE);
 unsigned long ultimoMuestreo = 0;
 
-// Historial de CO
 float historialCO[5] = {0};
 int   indiceGases    = 0;
 
@@ -127,7 +91,7 @@ int   indiceGases    = 0;
 const int NUM_MUESTRAS_BASELINE = 60;
 float historialBase7[NUM_MUESTRAS_BASELINE]    = {0};
 float historialBasePM25[NUM_MUESTRAS_BASELINE] = {0};
-float historialBase3[NUM_MUESTRAS_BASELINE]    = {0}; // *** NUEVO *** baseline del MQ-3
+float historialBase3[NUM_MUESTRAS_BASELINE]    = {0}; 
 int   indiceBase      = 0;
 bool  bufferBaseLleno = false;
 
@@ -230,19 +194,12 @@ void setup() {
   analogReadResolution(12);
   analogSetAttenuation(ADC_11db);
 
-  // *** NUEVO *** Entrada del sensor de sonido que escucha la alarma de humo.
-  // INPUT_PULLDOWN: si aún no lo conectas, queda en LOW y no afecta nada.
   pinMode(ALARMA_EXTERNA_PIN, INPUT_PULLDOWN);
 
-  // *** NUEVO *** PWM del heater del MQ-7 (API ledc de ESP32 core >= 3.0).
-  // Si tu core es 2.x, reemplaza esta línea por:
-  //   ledcSetup(0, HEATER_PWM_FREQ, HEATER_PWM_RES); ledcAttachPin(MQ7_HEATER_PIN, 0);
-  // y usa ledcWrite(0, duty) en vez de ledcWrite(MQ7_HEATER_PIN, duty) más abajo.
   ledcAttach(MQ7_HEATER_PIN, HEATER_PWM_FREQ, HEATER_PWM_RES);
   tCambioCalentador = millis();
   estadoCalentador   = HEATER_ALTA;
 
-  // *** NUEVO *** Carga el R0 calibrado y guardado en Flash (si existe)
   cargarR0();
 
   esp_task_wdt_config_t wdt_config = {
@@ -291,10 +248,8 @@ void setup() {
 void loop() {
   esp_task_wdt_reset();
 
-  // Procesar comandos del Monitor Serie
   procesarMenuSerial();
 
-  // Portal cautivo (sin bloquear sensores)
   if (modoPortalConfig) {
     dnsServer.processNextRequest();
     server.handleClient();
@@ -305,21 +260,17 @@ void loop() {
 
   unsigned long ahora = millis();
 
-  // *** NUEVO *** Ciclo del heater del MQ-7 (no bloqueante, corre siempre)
   actualizarCalentadorMQ7();
 
 #if PMS_HABILITADO
-  // PMS5003 siempre
   leerPMS5003();
 #endif
 
-  // Muestreo siempre
   if (ahora - ultimoMuestreo >= INTERVALO_MUESTREO) {
     ultimoMuestreo = ahora;
     leerSensoresYProcesar();
   }
 
-  // Envío HTTP solo si hay WiFi y no estamos en portal
   if (!modoPortalConfig && colaCount > 0 && WiFi.status() == WL_CONNECTED) {
     procesarCola();
   }
@@ -343,8 +294,8 @@ void imprimirAyudaSerial() {
 void procesarMenuSerial() {
   if (!Serial.available()) return;
   char c = Serial.read();
-  Serial.printf("[SERIAL] Byte recibido: '%c' (0x%02X)\n", c, (uint8_t)c); // *** DEBUG *** quita esta línea cuando confirmes que funciona
-  while (Serial.available()) Serial.read(); // limpiar buffer
+  Serial.printf("[SERIAL] Byte recibido: '%c' (0x%02X)\n", c, (uint8_t)c);
+  while (Serial.available()) Serial.read(); 
 
   switch (c) {
     case 'p': case 'P':
@@ -442,8 +393,6 @@ void leerSensoresYProcesar() {
 
   esp_task_wdt_reset();
 
-  // *** NUEVO *** Solo se considera una lectura de CO válida durante la fase
-  // de 1.4V del heater, ya estabilizada, y solo si el sensor tiene R0 calibrado.
   float ppmCO = -1.0;
   if (ventanaMedicionValida && r0MQ7 > 0) {
     float ppmBruto = leerPPM(MQ7_PIN, 10.0, 99.042, -1.518);
@@ -460,8 +409,6 @@ void leerSensoresYProcesar() {
   }
   indiceGases++;
 
-  // *** NUEVO *** MQ-3: no necesita R0/calibración de ppm, solo comparar contra
-  // su propia base reciente (igual filosofía que ya usas para picoGas).
   float vozMQ3 = leerVozMQ3(MQ3_PIN);
   bool  mq3_valido = (vozMQ3 >= 0);
 
@@ -471,7 +418,7 @@ void leerSensoresYProcesar() {
 
   bool muestraNormal7   = !co_valido      || (basePrev7   <= 0) || (ppmCO  <= basePrev7  * 1.5);
   bool muestraNormalPM  = !datosPmValidos || (basePrevPM  <= 0) || (pm2_5  <= basePrevPM * 1.6);
-  bool muestraNormal3   = !mq3_valido     || (basePrev3   <= 0) || (vozMQ3 <= basePrev3  * 1.5);
+  bool muestraNormal3   = !mq3_valido     || (basePrev3   <= 0) || (vozMQ3 <= basePrev3  * 1.15);
 
   if (muestraNormal7 && muestraNormalPM && muestraNormal3) {
     if (co_valido)      historialBase7[indiceBase]    = ppmCO;
@@ -485,14 +432,10 @@ void leerSensoresYProcesar() {
   float basePM  = basePrevPM;
   float base3   = basePrev3;
 
-  // *** NUEVO *** Pico de alcohol/VOC (vape) relativo a su propia base
-  bool subidaMQ3 = mq3_valido && (base3 > 0.05) && (vozMQ3 > base3 * 1.6);
+  bool subidaMQ3 = mq3_valido && (base3 > 0.05) && (vozMQ3 > base3 * 1.15);
 
   bool sensoresCalientes = (millis() - inicioSistema) > TIEMPO_CALENTAMIENTO_MS;
 
-    // *** CORREGIDO *** Umbral relativo: con R0 bien calibrado el CO en aire
-  // limpio ronda unas pocas/decenas de ppm, así que un umbral fijo de 50 ppm
-  // (pensado para la escala vieja, inflada, de 200-1800 ppm) ya no tiene sentido.
   float umbralPico = base7 > 0 ? max(5.0f, base7 * 0.5f) : 5.0f;
   bool  picoGas     = detectarPico(historialCO, 5, umbralPico);
   float promHum     = obtenerPromedioHumedad();
@@ -501,9 +444,6 @@ void leerSensoresYProcesar() {
   int  idxViejo  = (indiceHumRapido) % NUM_MUESTRAS_HUM_RAPIDO;
   float humRapidaVieja = historialHumedadRapida[idxViejo];
   bool saltoHumRapido  = DHT_CONECTADO && (humRapidaVieja > 0) && (humedad - humRapidaVieja > 6.0);
-  // *** CORREGIDO *** La humedad ambiental por sí sola YA NO dispara "humo":
-  // el MQ-7 es sensible a la humedad y un cambio normal del ambiente (ej. 71%→73%)
-  // no es evidencia de gas. Se conserva solo como pista secundaria para "vape".
   bool humedadDisparo  = subidaHum || saltoHumRapido;
 
   bool subidaCO  = co_valido && (base7 > 1.0) && (ppmCO > base7 * 1.6);
@@ -515,17 +455,15 @@ void leerSensoresYProcesar() {
   bool  particulaAncha   = datosPmValidos && (pm10 > pm2_5 * 1.3) && (pm2_5 > 15);
   bool  particulaDisparo = subidaPM || pmMuySaturado;
 
-  // *** NUEVO *** Respaldo: alarma de humo doméstica detectada por sonido.
   bool alarmaExterna = (digitalRead(ALARMA_EXTERNA_PIN) == HIGH);
 
-  bool humoCrudo = sensoresCalientes &&
-                   (subidaCO || particulaDisparo || picoGas || alarmaExterna || subidaMQ3);
+  // *** CAMBIADO PARA ALARMA INMEDIATA ***
+  bool humoCrudo = (subidaMQ3) || (sensoresCalientes && (subidaCO || particulaDisparo || picoGas || alarmaExterna));
 
   contadorHumo = humoCrudo ? contadorHumo + 1 : 0;
   bool humoConfirmado = contadorHumo >= MUESTRAS_CONFIRMACION;
 
-  // *** NUEVO *** El MQ-3 es la señal más directa que tienes para vape (PG/VG
-  // reacciona fuerte con sensores de alcohol), así que pesa fuerte en el score.
+  // *** AQUÍ ESTABAN LAS VARIABLES QUE FALTABAN ***
   int evidenciaCigarrillo = (subidaCO ? 2 : 0) + (particulaAncha ? 1 : 0)
                              + ((alarmaExterna && subidaCO)  ? 1 : 0);
   int evidenciaVape       = (particulaFina ? 2 : 0) + (humedadDisparo ? 2 : 0)
@@ -533,7 +471,9 @@ void leerSensoresYProcesar() {
                              + ((alarmaExterna && !subidaCO) ? 1 : 0);
 
   String posibleCausa = "";
-  if (evidenciaCigarrillo >= 2 && evidenciaCigarrillo > evidenciaVape) {
+  if (subidaMQ3 && !subidaCO && !particulaDisparo && !picoGas && !alarmaExterna) {
+    posibleCausa = "Vape, alta confianza";
+  } else if (evidenciaCigarrillo >= 2 && evidenciaCigarrillo > evidenciaVape) {
     posibleCausa = (evidenciaCigarrillo >= 3) ? "Cigarrillo, alta confianza" : "posible Cigarrillo";
   } else if (evidenciaVape >= 2 && evidenciaVape > evidenciaCigarrillo) {
     posibleCausa = (evidenciaVape >= 4) ? "Vape, alta confianza" : "posible Vape";
@@ -542,18 +482,19 @@ void leerSensoresYProcesar() {
   String tipo        = "Aire limpio";
   bool humoDetectado = false;
 
-  if (!sensoresCalientes) {
-    tipo = "Calentando sensores";
-  } else if (r0MQ7 <= 0) {
-    tipo = "MQ-7 sin calibrar (usa 'k' en aire limpio)";
-  } else if (!ventanaMedicionValida) {
-    tipo = "Ciclo heater: fase alta / estabilizando (sin lectura CO)";
-  } else if (humoConfirmado) {
+  // *** CAMBIADO PARA ALARMA INMEDIATA ***
+  if (humoConfirmado) {
     tipo = (posibleCausa != "") ? ("Humo detectado (" + posibleCausa + ")") : "Humo detectado";
     humoDetectado = true;
   } else if (humoCrudo) {
     tipo = "Posible humo (sin confirmar)";
     humoDetectado = true;
+  } else if (!sensoresCalientes) {
+    tipo = "Calentando sensores";
+  } else if (r0MQ7 <= 0) {
+    tipo = "MQ-7 sin calibrar (usa 'k' en aire limpio)";
+  } else if (!ventanaMedicionValida) {
+    tipo = "Ciclo heater: fase alta / estabilizando (sin lectura CO)";
   }
 
   if (millis() - ultimoPMSRx > 10000) {
@@ -586,12 +527,9 @@ void leerSensoresYProcesar() {
   }
 }
 
-// ─── *** NUEVO *** Ciclo del heater del MQ-7 (no bloqueante) ─────────────────
+// ─── Ciclo del heater del MQ-7 (no bloqueante) ─────────────────
 void actualizarCalentadorMQ7() {
 #if MODO_DEMO_SIN_CICLO_HEATER
-  // Modo demo: se queda fijo en la fase de medición (~1.4V), sin fase de
-  // quemado de 60s. Lectura continua, pero sin el mantenimiento que da el
-  // ciclo completo del datasheet.
   ledcWrite(MQ7_HEATER_PIN, HEATER_DUTY_LOW);
   ventanaMedicionValida = (millis() - tCambioCalentador >= MARGEN_ESTABILIZACION_MS);
   return;
@@ -600,14 +538,14 @@ void actualizarCalentadorMQ7() {
   unsigned long transcurrido = ahora - tCambioCalentador;
 
   if (estadoCalentador == HEATER_ALTA) {
-    ledcWrite(MQ7_HEATER_PIN, HEATER_DUTY_HIGH);   // ~5V: fase de "quemado"
+    ledcWrite(MQ7_HEATER_PIN, HEATER_DUTY_HIGH);   
     ventanaMedicionValida = false;
     if (transcurrido >= HEATER_HIGH_MS) {
       estadoCalentador  = HEATER_BAJA;
       tCambioCalentador = ahora;
     }
   } else {
-    ledcWrite(MQ7_HEATER_PIN, HEATER_DUTY_LOW);    // ~1.4V: fase de medición de CO
+    ledcWrite(MQ7_HEATER_PIN, HEATER_DUTY_LOW);    
     ventanaMedicionValida = (transcurrido >= MARGEN_ESTABILIZACION_MS);
     if (transcurrido >= HEATER_LOW_MS) {
       estadoCalentador  = HEATER_ALTA;
@@ -616,10 +554,6 @@ void actualizarCalentadorMQ7() {
   }
 }
 
-// ─── *** NUEVO *** Rs del MQ7 con filtro de mediana recortada (sin R0 aún) ───
-// ─── *** NUEVO *** MQ-3: solo necesitamos un valor relativo, no ppm exacto ───
-// (más voltaje = menos resistencia del sensor = más alcohol/VOC detectado,
-// asumiendo el cableado típico: VCC -> sensor -> nodo AOUT -> RL -> GND)
 float leerVozMQ3(int pin) {
   const int NUM_MUESTRAS = 25;
   int lecturas[NUM_MUESTRAS];
@@ -646,7 +580,7 @@ float leerVozMQ3(int pin) {
   float adc = (float)suma / (NUM_MUESTRAS - 10);
   float voltaje = (adc / 4095.0) * 3.3;
 
-  if (voltaje < 0.02) return -1.0; // sensor no conectado / sin alimentación
+  if (voltaje < 0.02) return -1.0; 
   return voltaje;
 }
 
@@ -678,14 +612,13 @@ float leerRS_MQ7(int pin, float RL) {
 
   if (voltaje < 0.05 || voltaje > 3.20) return -1.0;
 
-  return ((3.3 - voltaje) / voltaje) * RL; // Rs, en las mismas unidades que RL (kΩ si RL=10.0)
+  return ((3.3 - voltaje) / voltaje) * RL; 
 }
 
-// ─── *** NUEVO *** Conversión Rs/R0 → ppm usando el R0 YA calibrado ──────────
 float leerPPM(int pin, float RL, float A, float B) {
   float RS = leerRS_MQ7(pin, RL);
   if (RS <= 0) return -1.0;
-  if (r0MQ7 <= 0) return -1.0; // sin calibrar: no inventamos un ppm
+  if (r0MQ7 <= 0) return -1.0; 
 
   float ratio = RS / r0MQ7;
   if (ratio <= 0.001) return -1.0;
@@ -696,7 +629,6 @@ float leerPPM(int pin, float RL, float A, float B) {
   return ppm;
 }
 
-// ─── *** NUEVO *** Carga de R0 desde NVS (Flash) ─────────────────────────────
 void cargarR0() {
   preferences.begin("vcdetection", false);
   r0MQ7 = preferences.getFloat("r0_mq7", -1.0);
@@ -710,11 +642,6 @@ void cargarR0() {
   }
 }
 
-// ─── *** NUEVO *** Calibración de R0 (una sola vez, manual, en aire limpio) ──
-// IMPORTANTE: 27.5 es el ratio Rs/Ro EN AIRE LIMPIO que da el datasheet del
-// MQ-7, no es R0. R0 se calcula así: R0 = Rs_medido_en_aire_limpio / 27.5.
-// Antes el código usaba 27.5 directamente como si fuera R0, lo que inflaba
-// los ppm reportados muy por encima de lo real.
 void calibrarR0MQ7() {
   Serial.println("[MQ7] Calibrando R0... asegúrate de estar en AIRE LIMPIO (sin humo, gas, alcohol, etc).");
   Serial.println("[MQ7] Esperando a que el heater entre en la ventana de medición (1.4V estable)...");
@@ -756,24 +683,18 @@ void calibrarR0MQ7() {
                 rsPromedio, r0MQ7);
 }
 
-// ─── *** NUEVO *** Compensación aproximada por humedad/temperatura ───────────
-// El datasheet del MQ-7 solo publica curvas gráficas de corrección (no una
-// fórmula oficial). Esta es una aproximación lineal práctica, centrada en
-// 20°C / 65% HR (referencia habitual del datasheet). NO sustituye una
-// calibración con gas patrón si necesitas precisión certificable.
 float compensarHumedadTemp(float ppmBruto, float temperatura, float humedad) {
   if (ppmBruto < 0 || isnan(temperatura) || isnan(humedad) || humedad < 0 || temperatura < -40) {
     return ppmBruto;
   }
-  float factorHumedad = 1.0 - 0.006 * (humedad - 65.0);      // ≈ -0.6% de ppm por cada %HR de más
-  float factorTemp    = 1.0 - 0.003 * (temperatura - 20.0);  // ≈ -0.3% de ppm por cada °C de más
+  float factorHumedad = 1.0 - 0.006 * (humedad - 65.0);      
+  float factorTemp    = 1.0 - 0.003 * (temperatura - 20.0);  
   float factor = factorHumedad * factorTemp;
   if (factor < 0.5) factor = 0.5;
   if (factor > 1.5) factor = 1.5;
   return ppmBruto * factor;
 }
 
-// ─── PMS5003 con Checksum ─────────────────────────────────────────────────────
 void leerPMS5003() {
   while (Serial2.available() >= 32) {
     if (Serial2.read() != 0x42) continue;
@@ -1058,7 +979,6 @@ float obtenerPromedio(float* hist, int size, bool lleno, int indiceActual) {
   return sum / num;
 }
 
-// ─── Timestamp ISO con fallback a millis() ────────────────────────────────────
 String getTimestampISO() {
   struct tm timeinfo;
   if (getLocalTime(&timeinfo, 10)) {
@@ -1067,7 +987,6 @@ String getTimestampISO() {
     return String(buf);
   }
 
-  // Fallback: usar millis() como HH:MM:SS desde el arranque
   unsigned long totalSeg = millis() / 1000;
   int h = (totalSeg / 3600) % 100;
   int m = (totalSeg / 60) % 60;
