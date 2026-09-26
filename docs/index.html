@@ -449,29 +449,66 @@
 
     .mock-metricas {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-bottom: 18px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 14px;
     }
 
     .metrica-item {
       background: #f8fafc;
       border: 1px solid var(--borde);
       border-radius: 10px;
-      padding: 10px 8px;
+      padding: 8px 4px;
       text-align: center;
     }
 
     .metrica-valor {
-      font-size: 15px;
+      font-size: 13.5px;
       font-weight: 800;
       color: var(--texto);
     }
 
     .metrica-etiqueta {
-      font-size: 10.5px;
-      font-weight: 600;
+      font-size: 9.5px;
+      font-weight: 700;
       color: var(--texto-suave);
+      text-transform: uppercase;
+    }
+
+    .mock-acciones-rapidas {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .mock-btn-camino {
+      flex: 1;
+      background: #7c3aed;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .mock-btn-pdf {
+      background: #eef2ff;
+      color: #4f46e5;
+      border: 1px solid #c7d2fe;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
     }
 
     .mock-notif {
@@ -482,9 +519,111 @@
       display: flex;
       align-items: center;
       gap: 9px;
-      font-size: 12.5px;
+      font-size: 12px;
       font-weight: 700;
       color: #166534;
+    }
+
+    /* Showcase de Acta Disciplinaria */
+    .seccion-acta {
+      background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+      border-block: 1px solid var(--borde);
+    }
+
+    .acta-preview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.1fr;
+      gap: 48px;
+      align-items: center;
+    }
+
+    .acta-mockup-doc {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.1);
+      border: 1px solid #cbd5e1;
+      padding: 28px;
+      font-family: inherit;
+    }
+
+    .acta-doc-header {
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .acta-doc-title {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      color: #0f172a;
+    }
+
+    .acta-doc-tag {
+      font-size: 10.5px;
+      font-weight: 800;
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    .acta-doc-tabla {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-bottom: 16px;
+    }
+
+    .acta-doc-tabla td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .acta-doc-tabla td.label {
+      font-weight: 700;
+      color: #64748b;
+      width: 38%;
+    }
+
+    .acta-doc-tabla td.val {
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .acta-firmas {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-top: 20px;
+      padding-top: 14px;
+      border-top: 1px dashed #cbd5e1;
+      text-align: center;
+    }
+
+    .firma-linea {
+      border-top: 1px solid #94a3b8;
+      margin-top: 24px;
+      padding-top: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #64748b;
+    }
+
+    .android-install-tip {
+      margin-top: 14px;
+      background: #fffbeb;
+      border: 1px solid #fef3c7;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #92400e;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
     }
 
     /* ===== Secciones Generales ===== */
@@ -1211,6 +1350,7 @@
 
       <div class="nav-links">
         <a href="#como-funciona">Cómo funciona</a>
+        <a href="#actas">Actas PDF</a>
         <a href="#simulador">Simulador en vivo</a>
         <a href="#calculadora">Calculadora</a>
         <a href="#caracteristicas">Características</a>
@@ -1228,6 +1368,7 @@
     <!-- Menú Móvil Desplegable -->
     <div class="mobile-menu" id="mobileMenu">
       <a href="#como-funciona" onclick="cerrarMenu()">Cómo funciona</a>
+      <a href="#actas" onclick="cerrarMenu()">Actas PDF</a>
       <a href="#simulador" onclick="cerrarMenu()">Simulador en vivo</a>
       <a href="#calculadora" onclick="cerrarMenu()">Calculadora escolar</a>
       <a href="#caracteristicas" onclick="cerrarMenu()">Características</a>
@@ -1310,17 +1451,38 @@
 
             <div class="mock-metricas">
               <div class="metrica-item">
-                <div class="metrica-valor">64 µg</div>
-                <div class="metrica-etiqueta">PM2.5</div>
+                <div class="metrica-valor" style="color: #7c3aed;">2.45V</div>
+                <div class="metrica-etiqueta">MQ-3 Vape</div>
               </div>
               <div class="metrica-item">
-                <div class="metrica-valor">18 ppm</div>
-                <div class="metrica-etiqueta">Gas CO</div>
+                <div class="metrica-valor" style="color: #4f46e5;">14.2</div>
+                <div class="metrica-etiqueta">CO (ppm)</div>
               </div>
               <div class="metrica-item">
-                <div class="metrica-valor">+14%</div>
+                <div class="metrica-valor" style="color: #0ea5e9;">68%</div>
                 <div class="metrica-etiqueta">Humedad</div>
               </div>
+              <div class="metrica-item">
+                <div class="metrica-valor" style="color: #f59e0b;">24.5°</div>
+                <div class="metrica-etiqueta">Temp °C</div>
+              </div>
+            </div>
+
+            <!-- Acciones Rápidas de la App Móvil / Desktop -->
+            <div class="mock-acciones-rapidas">
+              <button class="mock-btn-camino" type="button">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                Voy en camino
+              </button>
+              <button class="mock-btn-pdf" type="button" title="Generar Acta Disciplinaria oficial en PDF">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                Acta PDF
+              </button>
             </div>
 
             <div class="mock-notif">
@@ -1328,7 +1490,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
-              Notificación enviada a 3 directores
+              Push FCM enviado · Prefecto en camino
             </div>
           </div>
         </div>
@@ -1378,26 +1540,35 @@
 
           <div class="slider-grupo">
             <div class="slider-header">
-              <span>Partículas PM2.5 (Aerosol)</span>
-              <span class="valor" id="valPM">8 µg/m³</span>
+              <span>Sensor MQ-3 · Vapor de Vape (Voltaje)</span>
+              <span class="valor" id="valMQ3" style="color: #7c3aed;">0.25 V</span>
             </div>
-            <input type="range" id="rangePM" min="0" max="150" value="8" oninput="actualizarSimulador()" />
+            <input type="range" id="rangeMQ3" min="0" max="350" value="25" oninput="actualizarSimulador()" />
+            <small style="font-size:11px; color:var(--texto-suave);">Normal: 0.1V - 0.5V | Vapeo activo: &gt; 0.80V</small>
           </div>
 
           <div class="slider-grupo">
             <div class="slider-header">
-              <span>Monóxido de Carbono - MQ7</span>
-              <span class="valor" id="valCO">4 ppm</span>
+              <span>Sensor MQ-7 · Monóxido de Carbono (CO)</span>
+              <span class="valor" id="valCO" style="color: #4f46e5;">4.0 ppm</span>
             </div>
-            <input type="range" id="rangeCO" min="0" max="60" value="4" oninput="actualizarSimulador()" />
+            <input type="range" id="rangeCO" min="0" max="600" value="40" oninput="actualizarSimulador()" />
+            <small style="font-size:11px; color:var(--texto-suave);">Normal: &lt; 9 ppm | Combustión tabaco: &gt; 18 ppm</small>
           </div>
 
           <div class="slider-grupo">
             <div class="slider-header">
-              <span>Salto de Humedad (DHT22)</span>
-              <span class="valor" id="valHum">+0 %</span>
+              <span>Sensor DHT22 · Humedad Relativa</span>
+              <span class="valor" id="valHum" style="color: #0ea5e9;">45 % HR</span>
             </div>
-            <input type="range" id="rangeHum" min="0" max="30" value="0" oninput="actualizarSimulador()" />
+            <input type="range" id="rangeHum" min="20" max="95" value="45" oninput="actualizarSimulador()" />
+          </div>
+
+          <div style="display:flex; align-items:center; gap:10px; margin-top:10px;">
+            <input type="checkbox" id="checkSpike" style="width:18px; height:18px; cursor:pointer;" onchange="actualizarSimulador()" />
+            <label for="checkSpike" style="font-size:13px; font-weight:700; color:var(--texto); cursor:pointer;">
+              Simular Pico Súbito (Ráfaga instantánea de aerosol)
+            </label>
           </div>
         </div>
 
@@ -1416,18 +1587,22 @@
               <p id="resDesc">Calidad del aire dentro de los rangos normales. No se detecta humo ni vapeo.</p>
             </div>
 
-            <div class="sim-graficas-resumen">
+            <div class="sim-graficas-resumen" style="grid-template-columns: repeat(4, 1fr);">
               <div class="gauge-mini">
-                <div class="g-num" id="gPM">8</div>
-                <div class="g-label">PM2.5 (µg/m³)</div>
+                <div class="g-num" id="gMQ3" style="color:#7c3aed;">0.25V</div>
+                <div class="g-label">MQ-3 Vape</div>
               </div>
               <div class="gauge-mini">
-                <div class="g-num" id="gCO">4</div>
+                <div class="g-num" id="gCO" style="color:#4f46e5;">4.0</div>
                 <div class="g-label">CO (ppm)</div>
               </div>
               <div class="gauge-mini">
+                <div class="g-num" id="gHum" style="color:#0ea5e9;">45%</div>
+                <div class="g-label">Humedad</div>
+              </div>
+              <div class="gauge-mini">
                 <div class="g-num" id="gConf">0%</div>
-                <div class="g-label">Confianza Alerta</div>
+                <div class="g-label">Confianza</div>
               </div>
             </div>
           </div>
@@ -1461,33 +1636,125 @@
 
       <div class="pasos-grid">
         <div class="paso-card">
-          <h3>Módulo Compacto</h3>
-          <p>Un gabinete discreto sin cámaras ni micrófonos analiza continuamente el aire del salón mediante sensores
-            electroquímicos y láser.</p>
+          <h3>Módulo IoT Discreto</h3>
+          <p>Un gabinete encubierto sin cámaras ni micrófonos analiza continuamente el aire del salón mediante sensores
+            electroquímicos de CO, aerosol de vape y termohigrometría ambiental.</p>
         </div>
         <div class="paso-card">
-          <h3>Conexión Encriptada</h3>
-          <p>Las lecturas viajan por Wi-Fi cifradas con clave API exclusiva de cada sensor directamente al servidor
-            central seguro.</p>
+          <h3>Conexión Segura IoT</h3>
+          <p>Las lecturas viajan por Wi-Fi cifradas con clave API única por dispositivo hacia el backend con WebSockets
+            y base de datos PostgreSQL persistente.</p>
         </div>
         <div class="paso-card">
-          <h3>Filtro Anti-Falso Positivo</h3>
-          <p>El algoritmo analiza la proporción de PM1.0, PM2.5, CO y humedad. Descarta automáticamente aerosoles de
-            desodorante o polvo.</p>
+          <h3>Algoritmo de Firma Química</h3>
+          <p>Compara el ratio entre MQ-3 (glicerina/propilenglicol), MQ-7 (CO de combustión) y DHT22 (humedad). Descarta
+            automáticamente perfumes y desodorantes.</p>
         </div>
         <div class="paso-card">
-          <h3>Alerta Multicanal</h3>
-          <p>En menos de 1 segundo llega una notificación push a la app móvil de los coordinadores y suena en el panel
-            de Windows.</p>
+          <h3>Respuesta Inmediata Multicanal</h3>
+          <p>En menos de 1 segundo se dispara la alerta acústica en la PC de prefectura, notificación push en Android y
+            el botón «Voy en camino» para el prefecto.</p>
         </div>
       </div>
 
       <div class="chips-hardware">
-        <span class="chip-hw"><i></i> MQ-7 · Monóxido de Carbono (CO)</span>
-        <span class="chip-hw"><i></i> PMS5003 · Partículas Láser PM2.5/PM10</span>
-        <span class="chip-hw"><i></i> DHT22 · Humedad y temperatura</span>
-        <span class="chip-hw"><i></i> MQ-3 · Alcohol y vape</span>
-        <span class="chip-hw"><i></i> ESP32 · Microcontrolador con Watchdog</span>
+        <span class="chip-hw"><i></i> MQ-3 · Vapor de Vape (Glicerina Vegetal / Propilenglicol)</span>
+        <span class="chip-hw"><i></i> MQ-7 · Monóxido de Carbono (CO) y Combustión</span>
+        <span class="chip-hw"><i></i> DHT22 · Compensación de Humedad y Temperatura</span>
+        <span class="chip-hw"><i></i> ESP32 · Microcontrolador con Watchdog y OTA Wi-Fi</span>
+        <span class="chip-hw"><i></i> WebSockets + FCM · Notificaciones Instantáneas</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ NUEVA SECCIÓN: ACTAS DISCIPLINARIAS EN PDF ============ -->
+  <section id="actas" class="seccion-acta">
+    <div class="contenedor">
+      <div class="acta-preview-grid">
+        <div>
+          <span class="tag-seccion" style="background:#e0e7ff; color:#4338ca;">Respaldo Institucional</span>
+          <h2 style="font-size:clamp(26px, 3.2vw, 38px); letter-spacing:-0.8px; font-weight:800; margin-bottom:14px;">
+            Actas de Incidencia Disciplinaria en PDF con un solo clic
+          </h2>
+          <p style="color:var(--texto-suave); font-size:16.5px; line-height:1.6; margin-bottom:20px;">
+            Cuando ocurre un evento de vapeo o cigarrillo, las palabras no bastan frente a una citación de padres de familia.
+            El panel de escritorio de VCDetection genera automáticamente un <b>documento oficial imprimible</b> con los datos
+            técnicos exactos de la infracción.
+          </p>
+
+          <ul style="list-style:none; display:flex; flex-direction:column; gap:12px; margin-bottom:24px;">
+            <li style="display:flex; align-items:center; gap:10px; font-weight:600; font-size:14.5px;">
+              <span style="width:24px; height:24px; border-radius:50%; background:#dcfce7; color:#15803d; display:grid; place-items:center; font-size:12px; font-weight:800;">✓</span>
+              Fecha y hora exacta del suceso registradas por el microcontrolador
+            </li>
+            <li style="display:flex; align-items:center; gap:10px; font-weight:600; font-size:14.5px;">
+              <span style="width:24px; height:24px; border-radius:50%; background:#dcfce7; color:#15803d; display:grid; place-items:center; font-size:12px; font-weight:800;">✓</span>
+              Niveles técnicos irrefutables: Voltaje MQ-3 (Vape), PPM de CO, Humedad y Temp
+            </li>
+            <li style="display:flex; align-items:center; gap:10px; font-weight:600; font-size:14.5px;">
+              <span style="width:24px; height:24px; border-radius:50%; background:#dcfce7; color:#15803d; display:grid; place-items:center; font-size:12px; font-weight:800;">✓</span>
+              Campos formales de firmas para Dirección, Comité de Convivencia y Alumno/Tutor
+            </li>
+          </ul>
+
+          <a href="#descargas" class="btn btn-primario">
+            Obtener Panel de Escritorio (Windows)
+          </a>
+        </div>
+
+        <!-- Mockup Visual del Documento PDF -->
+        <div class="acta-mockup-doc">
+          <div class="acta-doc-header">
+            <div>
+              <div class="acta-doc-title">ACTA DISCIPLINARIA · INFORME TÉCNICO</div>
+              <small style="color:#64748b; font-size:11px;">SISTEMA VCDETECTION — EXPEDIENTE ESCOLAR</small>
+            </div>
+            <span class="acta-doc-tag">INFRACCIÓN CONFIRMADA</span>
+          </div>
+
+          <table class="acta-doc-tabla">
+            <tr>
+              <td class="label">Ubicación / Salón:</td>
+              <td class="val">Baño Alumnos Varones · Edificio B</td>
+            </tr>
+            <tr>
+              <td class="label">Dispositivo Sensor:</td>
+              <td class="val">SALON_B_BANIOS (ESP32)</td>
+            </tr>
+            <tr>
+              <td class="label">Tipo de Detección:</td>
+              <td class="val" style="color:#dc2626; font-weight:800;">VAPE CONFIRMADO (Aerosol Químico)</td>
+            </tr>
+            <tr>
+              <td class="label">Sensor MQ-3 (Vape):</td>
+              <td class="val"><b>2.48 V</b> (Límite normal: 0.50 V — Disparo Crítico)</td>
+            </tr>
+            <tr>
+              <td class="label">Monóxido de Carbono (CO):</td>
+              <td class="val">13.5 ppm (Presencia de vapor aromático)</td>
+            </tr>
+            <tr>
+              <td class="label">Humedad y Temperatura:</td>
+              <td class="val">68.2% HR · 24.1 °C</td>
+            </tr>
+          </table>
+
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px; font-size:11.5px; color:#475569;">
+            <b>Dictamen técnico del sistema:</b> Se detectó ráfaga de aerosol compatible con glicerina vegetal y propilenglicol a las 10:42:15 AM con protocolo de descarte térmico completado.
+          </div>
+
+          <div class="acta-firmas">
+            <div>
+              <div class="firma-linea">Firma Prefecto / Coordinador</div>
+            </div>
+            <div>
+              <div class="firma-linea">Dirección Escolar</div>
+            </div>
+            <div>
+              <div class="firma-linea">Firma Padre / Tutor</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -1550,74 +1817,68 @@
       <div class="caracs-grid">
         <div class="carac-card">
           <div class="carac-icono" style="background: #eef2ff;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"
-              stroke-linecap="round">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round">
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
             </svg>
           </div>
-          <h3>Monitoreo en Tiempo Real</h3>
-          <p>Conexión continua por WebSockets. Las lecturas se actualizan segundo a segundo sin recargar pantallas.</p>
+          <h3>Monitoreo en Tiempo Real (WebSockets)</h3>
+          <p>Conexión instantánea de baja latencia vía Socket.IO. El panel y la app móvil reflejan las variaciones del aire al segundo sin recargar.</p>
         </div>
 
         <div class="carac-card">
           <div class="carac-icono" style="background: #ecfdf5;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"
-              stroke-linecap="round">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round">
               <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
               <path d="M13.73 21a2 2 0 01-3.46 0" />
             </svg>
           </div>
-          <h3>Notificaciones Push Móviles</h3>
-          <p>Alertas instantáneas en dispositivos Android mediante Firebase Cloud Messaging sin consumir batería.</p>
+          <h3>Acción Rápida «Voy en camino»</h3>
+          <p>Notificaciones push en Android con vibración continua. Los prefectos confirman su intervención en el salón con un solo toque.</p>
         </div>
 
         <div class="carac-card">
           <div class="carac-icono" style="background: #fdf4ff;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"
-              stroke-linecap="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
             </svg>
           </div>
-          <h3>Privacidad Garantizada</h3>
-          <p>Ideal para baños y vestidores: no contiene micrófonos ni cámaras. Solo analiza parámetros químicos del
-            aire.</p>
+          <h3>Actas Disciplinarias en PDF</h3>
+          <p>Generación instantánea de actas oficiales con datos técnicos irrefutables (voltaje MQ-3, CO ppm, salón, hora) listas para citación de padres.</p>
         </div>
 
         <div class="carac-card">
           <div class="carac-icono" style="background: #fff7ed;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2"
-              stroke-linecap="round">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2" stroke-linecap="round">
               <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h3>Historial e Informes</h3>
-          <p>Bitácora con fecha, hora exacta y concentraciones para actas disciplinarias y reportes a padres de familia.
-          </p>
+          <h3>Historial y Gráficas Multi-Rango</h3>
+          <p>Curvas interactivas en vivo (Live), 24 horas, 7 días y 30 días para evaluar patrones recurrentes de vapeo por salón o piso.</p>
         </div>
 
         <div class="carac-card">
           <div class="carac-icono" style="background: #f0fdf4;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"
-              stroke-linecap="round">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-              <line x1="8" y1="21" x2="16" y2="21"></line>
-              <line x1="12" y1="17" x2="12" y2="21"></line>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"></path>
             </svg>
           </div>
-          <h3>Panel de Escritorio (Windows)</h3>
-          <p>Software para prefectura y recepción con visualización de estado de todos los salones en tiempo real.</p>
+          <h3>Sirena Acústica en Panel Windows</h3>
+          <p>Alarma sonora configurable en el software de escritorio para alertar al personal de recepción o prefectura en cuanto se confirme humo.</p>
         </div>
 
         <div class="carac-card">
           <div class="carac-icono" style="background: #f1f5f9;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2"
-              stroke-linecap="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-              <polyline points="22,6 12,13 2,6"></polyline>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0110 0v4"></path>
             </svg>
           </div>
-          <h3>Reportes por Correo</h3>
-          <p>Envío de correos automáticos al comité de convivencia escolar en detecciones de alta confianza.</p>
+          <h3>Gestión de Usuarios y Roles JWT</h3>
+          <p>Autenticación segura con bcrypt y separación de permisos entre Administradores (altas/bajas) y Operadores/Prefectos escolares.</p>
         </div>
       </div>
     </div>
@@ -1725,32 +1986,49 @@
               <line x1="12" y1="18" x2="12.01" y2="18"></line>
             </svg>
           </div>
-          <h3>Android Móvil</h3>
-          <div class="formato">Archivo APK · Instalación Directa</div>
+          <h3>App Móvil (Android)</h3>
+          <div class="formato">APK Oficial Firmado · Instalación Directa</div>
           <ul>
             <li>
               <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
               </svg>
-              Notificaciones push instantáneas (FCM)
+              Notificaciones push inmediatas (FCM) con vibración continua
             </li>
             <li>
               <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
               </svg>
-              Compatible con Android 8.0 o superior
+              Botón de intervención rápida «Voy en camino» para prefectos
             </li>
             <li>
               <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
               </svg>
-              Bajo consumo de batería en segundo plano
+              Monitoreo de MQ-3 (Vape en Voltios), CO, Humedad y Temp
+            </li>
+            <li>
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+              </svg>
+              Compatible con Android 8.0 hasta Android 15
             </li>
           </ul>
           <a class="btn btn-primario" style="width:100%;"
             href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/download/latest/VCDetection-movil.apk">
-            Descargar APK (Android)
+            Descargar APK Firmado (Android)
           </a>
+
+          <div class="android-install-tip">
+            <svg width="16" height="16" fill="none" stroke="#d97706" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink:0; margin-top:2px;">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <div>
+              <b>Consejo de instalación:</b> Desinstala cualquier versión anterior antes de instalar el nuevo APK y permite «Instalar desde fuentes desconocidas» en tu navegador si Android te lo solicita.
+            </div>
+          </div>
         </div>
 
         <!-- Windows -->
@@ -1761,31 +2039,37 @@
                 d="M3 5.5l7.5-1v7H3v-6zm0 13v-6h7.5v7L3 18.5zm8.5 1.1v-7.1H21v8l-9.5-1.3v.4zm0-15.2L21 3.3v8.2h-9.5v-7z" />
             </svg>
           </div>
-          <h3>Panel Windows</h3>
-          <div class="formato">Instalador .exe · Asistente Completo</div>
+          <h3>Panel Central (Windows)</h3>
+          <div class="formato">Instalador .exe Oficial · Asistente NSIS</div>
           <ul>
             <li>
               <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
               </svg>
-              Dashboard para monitores de prefectura
+              Generador oficial de Actas Disciplinarias en formato PDF
             </li>
             <li>
               <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
               </svg>
-              Alertas sonoras y visuales en tiempo real
+              Sirena acústica de emergencia para recepción o prefectura
             </li>
             <li>
               <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
               </svg>
-              Compatible con Windows 10 y 11 (64-bit)
+              Gráficas históricas multi-rango (Live, 24 horas, 7 días, 30 días)
+            </li>
+            <li>
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+              </svg>
+              Filtro y búsqueda instantánea de salones (Todos / Alerta / Normales)
             </li>
           </ul>
           <a class="btn btn-primario" style="width:100%;"
             href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/download/latest/VCDetection-Setup.exe">
-            Descargar Instalador (.exe)
+            Descargar Instalador Windows (.exe)
           </a>
         </div>
       </div>
@@ -1855,9 +2139,12 @@
 
     // ===== Simulador Interactivo =====
     function aplicarEscenario(tipo) {
-      const rPM = document.getElementById("rangePM");
+    // ===== Simulador Interactivo =====
+    function aplicarEscenario(tipo) {
+      const rMQ3 = document.getElementById("rangeMQ3");
       const rCO = document.getElementById("rangeCO");
       const rHum = document.getElementById("rangeHum");
+      const chkSpike = document.getElementById("checkSpike");
 
       // Marcar botón activo
       document.querySelectorAll(".btn-escenario").forEach(b => b.classList.remove("activo"));
@@ -1866,37 +2153,46 @@
       }
 
       if (tipo === "limpio") {
-        rPM.value = 8;
-        rCO.value = 4;
-        rHum.value = 0;
+        rMQ3.value = 25;
+        rCO.value = 40;
+        rHum.value = 45;
+        chkSpike.checked = false;
       } else if (tipo === "vape") {
-        rPM.value = 65;
-        rCO.value = 16;
-        rHum.value = 15;
+        rMQ3.value = 245;
+        rCO.value = 140;
+        rHum.value = 68;
+        chkSpike.checked = true;
       } else if (tipo === "cigarrillo") {
-        rPM.value = 45;
-        rCO.value = 36;
-        rHum.value = 2;
+        rMQ3.value = 75;
+        rCO.value = 380;
+        rHum.value = 42;
+        chkSpike.checked = true;
       } else if (tipo === "perfume") {
-        rPM.value = 10;
-        rCO.value = 3;
-        rHum.value = 18;
+        rMQ3.value = 135;
+        rCO.value = 35;
+        rHum.value = 48;
+        chkSpike.checked = false;
       }
 
       actualizarSimulador();
     }
 
     function actualizarSimulador() {
-      const pm = parseInt(document.getElementById("rangePM").value);
-      const co = parseInt(document.getElementById("rangeCO").value);
+      const mq3Raw = parseInt(document.getElementById("rangeMQ3").value);
+      const coRaw = parseInt(document.getElementById("rangeCO").value);
       const hum = parseInt(document.getElementById("rangeHum").value);
+      const esSpike = document.getElementById("checkSpike").checked;
 
-      document.getElementById("valPM").textContent = pm + " µg/m³";
-      document.getElementById("valCO").textContent = co + " ppm";
-      document.getElementById("valHum").textContent = "+" + hum + " %";
+      const mq3Volt = (mq3Raw / 100).toFixed(2);
+      const coPpm = (coRaw / 10).toFixed(1);
 
-      document.getElementById("gPM").textContent = pm;
-      document.getElementById("gCO").textContent = co;
+      document.getElementById("valMQ3").textContent = mq3Volt + " V";
+      document.getElementById("valCO").textContent = coPpm + " ppm";
+      document.getElementById("valHum").textContent = hum + " % HR";
+
+      document.getElementById("gMQ3").textContent = mq3Volt + "V";
+      document.getElementById("gCO").textContent = coPpm;
+      document.getElementById("gHum").textContent = hum + "%";
 
       const tag = document.getElementById("tagEstado");
       const caja = document.getElementById("cajaResultado");
@@ -1909,19 +2205,19 @@
       let estado = "limpio";
       let confianza = 0;
 
-      // Lógica de detección simulada
-      if (co >= 25 && pm >= 30) {
+      // Lógica de detección real del sistema VCDetection (MQ-3 + MQ-7 + DHT22)
+      if (parseFloat(coPpm) >= 20.0 && esSpike) {
         estado = "cigarrillo";
-        confianza = 95;
-      } else if (pm >= 40 && hum >= 8) {
+        confianza = 96;
+      } else if (parseFloat(mq3Volt) >= 0.85 && (esSpike || hum >= 60)) {
         estado = "vape";
-        confianza = 92;
-      } else if (pm >= 35) {
-        estado = "pm_alto";
-        confianza = 70;
-      } else if (hum >= 12 && co < 10 && pm < 20) {
+        confianza = 94;
+      } else if (parseFloat(mq3Volt) >= 1.0 && !esSpike && parseFloat(coPpm) < 8.0) {
         estado = "aerosol_descartado";
-        confianza = 10;
+        confianza = 12;
+      } else if (parseFloat(mq3Volt) >= 0.65 || parseFloat(coPpm) >= 12.0) {
+        estado = "posible";
+        confianza = 65;
       }
 
       gConf.textContent = confianza + "%";
@@ -1930,47 +2226,47 @@
         tag.className = "sensor-estado-tag estado-rojo";
         tag.textContent = "● ALERTA: Cigarrillo";
         caja.className = "sim-resultado-box alerta-activa";
-        titulo.textContent = "⚠️ Cigarrillo Confirmado";
+        titulo.textContent = "🚬 Cigarrillo / Combustión Confirmada";
         titulo.style.color = "#991b1b";
-        desc.textContent = "Presencia de CO elevado por combustión de tabaco en Salón 03. Notificación transmitida.";
-        pushTit.textContent = "⚠️ ALERTA: Cigarrillo Detectado";
-        pushCue.textContent = "Salón 03: CO en 36 ppm. Posible humo de tabaco.";
+        desc.textContent = "Monóxido de carbono (CO) elevado (" + coPpm + " ppm) con pico de combustión activa. Alerta transmitida al panel de control.";
+        pushTit.textContent = "🚬 Alerta: Cigarrillo Detectado";
+        pushCue.textContent = "Salón 03: CO crítico en " + coPpm + " ppm. Prefectura informada.";
       } else if (estado === "vape") {
         tag.className = "sensor-estado-tag estado-rojo";
-        tag.textContent = "● ALERTA: Vapeo";
+        tag.textContent = "● ALERTA: Vape Confirmado";
         caja.className = "sim-resultado-box alerta-activa";
-        titulo.textContent = "🚨 Vape Confirmado";
+        titulo.textContent = "🚨 Vape Confirmado (Aerosol Químico)";
         titulo.style.color = "#991b1b";
-        desc.textContent = "Aerosol ultrafino y salto brusco de humedad coincidente con vapor de cigarrillo electrónico.";
-        pushTit.textContent = "🚨 ALERTA: Vapeo en Baño 02";
-        pushCue.textContent = "Baño Planta Baja: Salto de PM2.5 y humedad detectado.";
-      } else if (estado === "pm_alto") {
+        desc.textContent = "Sensor MQ-3 disparado a " + mq3Volt + "V por aerosol de propilenglicol/glicerina. Activación de vibración push y sirena de escritorio.";
+        pushTit.textContent = "🚨 ALERTA: Vapeo en Baños";
+        pushCue.textContent = "Baño Planta Baja: MQ-3 en " + mq3Volt + "V. Presiona «Voy en camino».";
+      } else if (estado === "posible") {
         tag.className = "sensor-estado-tag estado-rojo";
-        tag.textContent = "● Aviso de Partículas";
+        tag.textContent = "● Aviso: Posible Vape";
         caja.className = "sim-resultado-box alerta-activa";
-        titulo.textContent = "Aviso: Partículas Elevadas";
+        titulo.textContent = "⚠️ Lecturas Elevadas en Monitoreo";
         titulo.style.color = "#b45309";
-        desc.textContent = "Nivel de PM2.5 superior a 35 µg/m³. Posible presencia de humo en el área.";
-        pushTit.textContent = "Aviso: Partículas Elevadas";
-        pushCue.textContent = "Salón 01: PM2.5 superior a los límites recomendados.";
+        desc.textContent = "Sensor MQ-3 en " + mq3Volt + "V o CO en " + coPpm + " ppm. Salón marcado en amarillo para seguimiento.";
+        pushTit.textContent = "Aviso: Salón en Precaución";
+        pushCue.textContent = "Salón 01: Anomalía detectada en el aire.";
       } else if (estado === "aerosol_descartado") {
         tag.className = "sensor-estado-tag estado-verde";
         tag.textContent = "● Falso Positivo Filtrado";
         caja.className = "sim-resultado-box";
-        titulo.textContent = "Aerosol Inocuo Descartado";
+        titulo.textContent = "Aerosol / Desodorante Descartado";
         titulo.style.color = "#065f46";
-        desc.textContent = "Se detectó aerosol o perfume sin monóxido de carbono ni partículas de combustión. El sistema ignoró la falsa alarma.";
+        desc.textContent = "Detección de solvente volátil sin combustión de CO ni ráfaga de aerosol condensado. El algoritmo filtró la falsa alarma.";
         pushTit.textContent = "VCDetection Filtro";
-        pushCue.textContent = "Aerosol inocuo detectado y filtrado automáticamente.";
+        pushCue.textContent = "Perfume o aerosol inocuo ignorado automáticamente.";
       } else {
         tag.className = "sensor-estado-tag estado-verde";
         tag.textContent = "● Normal";
         caja.className = "sim-resultado-box";
         titulo.textContent = "Ambiente Seguro";
         titulo.style.color = "var(--texto)";
-        desc.textContent = "Calidad del aire dentro de los rangos normales. No se detecta humo ni vapeo.";
+        desc.textContent = "Calidad del aire dentro de los rangos normales (CO < 9 ppm, MQ-3 en reposo). No se detecta humo ni vapeo.";
         pushTit.textContent = "VCDetection Sistema";
-        pushCue.textContent = "Monitoreo activo en segundo plano en 12 salones.";
+        pushCue.textContent = "Monitoreo activo en segundo plano en todos los salones.";
       }
     }
 
