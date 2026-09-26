@@ -136,6 +136,7 @@ struct Lectura {
   int    pm1;
   int    pm25;
   int    pm10;
+  float  mq3;
   String timestamp;
 };
 
@@ -511,6 +512,7 @@ void leerSensoresYProcesar() {
   lec.pm1           = pm1_0;
   lec.pm25          = pm2_5;
   lec.pm10          = pm10;
+  lec.mq3           = vozMQ3;
   lec.timestamp     = getTimestampISO();
 
   Serial.printf("[%s] MQ7:%.1f (Base:%.1f) | MQ3:%.2fV (Base:%.2fV%s) | T:%.1f°C H:%.1f%% | PM2.5:%d (Base:%.1f, r:%.2f) | Alarma:%s | %s\n",
@@ -909,6 +911,7 @@ bool enviarDatos(Lectura &lec) {
   doc["pm1"]           = lec.pm1;
   doc["pm25"]          = lec.pm25;
   doc["pm10"]          = lec.pm10;
+  doc["mq3"]           = (lec.mq3 >= 0) ? (round(lec.mq3 * 100) / 100.0) : -1;
   doc["timestamp"]     = lec.timestamp;
 
   String body;

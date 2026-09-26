@@ -171,17 +171,17 @@ export default function DetalleSalonScreen({ route, navigation }: any) {
     );
   };
 
-  // Datos para la gráfica combinada CO / Humedad / PM2.5 (mismos colores que PC)
+  // Datos para la gráfica combinada CO / Humedad / MQ-3 (mismos colores que PC)
   const chartData: Serie[] = rango === 'live'
     ? [
         { data: historialLive.slice(-20).map(l => parseFloat(l.ppm135.toFixed(1))), color: COLORS.blue, nombre: 'CO MQ7 (ppm)' },
         { data: historialLive.slice(-20).map(l => l.humedad >= 0 ? l.humedad : 0), color: '#0ea5e9', nombre: 'Humedad (%)' },
-        { data: historialLive.slice(-20).map(l => l.pm25 > 0 ? l.pm25 : 0), color: COLORS.purple, nombre: 'PM2.5 (µg/m³)' },
+        { data: historialLive.slice(-20).map(l => l.ppm2 >= 0 ? parseFloat(l.ppm2.toFixed(2)) : 0), color: COLORS.purple, nombre: 'MQ-3 Vape (V)' },
       ]
     : [
         { data: histo.map(p => p.ppm135), color: COLORS.blue, nombre: 'CO MQ7 (ppm)' },
         { data: histo.map(p => p.humedad >= 0 ? p.humedad : 0), color: '#0ea5e9', nombre: 'Humedad (%)' },
-        { data: histo.map(p => p.pm25 > 0 ? p.pm25 : 0), color: COLORS.purple, nombre: 'PM2.5 (µg/m³)' },
+        { data: histo.map(p => p.ppm2 >= 0 ? parseFloat(p.ppm2.toFixed(2)) : 0), color: COLORS.purple, nombre: 'MQ-3 Vape (V)' },
       ];
 
   return (
@@ -229,9 +229,8 @@ export default function DetalleSalonScreen({ route, navigation }: any) {
       {/* Métricas actuales */}
       <View style={styles.metricsGrid}>
         <MetricCard label="CO (MQ7)" value={lectura ? lectura.ppm135.toFixed(1) : '--'} unit="ppm" color={COLORS.blue} />
+        <MetricCard label="MQ-3 (Vape)" value={lectura && lectura.ppm2 >= 0 ? `${lectura.ppm2.toFixed(2)}V` : '--'} unit="Volt" color={lectura && lectura.ppm2 > 0.8 ? COLORS.red : COLORS.purple} />
         <MetricCard label="Humedad" value={lectura && lectura.humedad >= 0 ? `${lectura.humedad.toFixed(1)}%` : '--'} unit="HR" color="#0ea5e9" />
-        <MetricCard label="PM2.5" value={lectura && lectura.pm25 >= 0 ? String(lectura.pm25) : '--'} unit="µg/m³" color={lectura && lectura.pm25 > 35 ? COLORS.red : COLORS.green} />
-        <MetricCard label="PM10" value={lectura && lectura.pm10 >= 0 ? String(lectura.pm10) : '--'} unit="µg/m³" color={COLORS.purple} />
         <MetricCard label="Temperatura" value={lectura && lectura.temperatura > -40 ? `${lectura.temperatura.toFixed(1)}°` : '--'} unit="C" color={COLORS.yellow} />
         <MetricCard label="Última señal" value={formatTiempoRelativo(dispositivo.ultimaConexion)} unit="" color={COLORS.textSecondary} />
       </View>
@@ -243,7 +242,7 @@ export default function DetalleSalonScreen({ route, navigation }: any) {
         <>
           <Text style={styles.chartTitulo}>
             {rango === 'live'
-              ? `CO, CO₂ y PM2.5 en vivo${historialLive.length > 0 ? ` (últimas ${Math.min(historialLive.length, 20)} lecturas)` : ''}`
+              ? `CO, Humedad y MQ-3 en vivo${historialLive.length > 0 ? ` (últimas ${Math.min(historialLive.length, 20)} lecturas)` : ''}`
               : `Promedios por hora — últimos ${rango} día(s)`}
           </Text>
           <View style={styles.chartBox}>

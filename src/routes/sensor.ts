@@ -52,10 +52,11 @@ export function verificarApiKeyDispositivo(
 // ============================================
 interface LecturaESP32 {
   dispositivoId: string;
-  // Formato nuevo (MQ7): ppmCO. Formato viejo (MQ135/MQ2): ppm135/ppm2.
+  // Formato nuevo (MQ7): ppmCO. Formato viejo (MQ135/MQ2): ppm135/ppm2. MQ3: mq3.
   ppm135?: number;
   ppm2?: number;
   ppmCO?: number;
+  mq3?: number;
   humoDetectado: boolean;
   tipo: string;
   picoSubito: boolean;
@@ -91,7 +92,7 @@ router.post(
         // El firmware nuevo envía ppmCO (MQ7); el column ppm135 se usa como
         // valor de gas genérico para no romper dashboards existentes.
         ppm135: data.ppm135 ?? data.ppmCO ?? 0,
-        ppm2: data.ppm2 ?? 0,
+        ppm2: data.mq3 ?? data.ppm2 ?? 0,
         humoDetectado: data.humoDetectado ?? false,
         tipo: data.tipo ?? "Desconocido",
         picoSubito: data.picoSubito ?? false,
@@ -144,7 +145,9 @@ router.post(
 
     // ---- Evaluar si se debe disparar alerta ----
     const debeAlertar =
-      valores.humoDetectado === true || (valores.pm25 !== -1 && valores.pm25 > 35);
+      valores.humoDetectado === true ||
+      (valores.pm25 !== -1 && valores.pm25 > 35) ||
+      valores.ppm2 > 0.8;
 
     if (debeAlertar) {
       // Verificar cooldown contra la última alerta en la BD
@@ -162,22 +165,22 @@ router.post(
         console.log(`[SENSOR] Cooldown activo para ${dispositivo.nombre}`);
       } else {
         // Determinar tipo de alerta
-        let tipoAlerta: TipoAlerta = TipoAlerta.PM25_ALTO;
+        let tipoAlerta: TipoAlerta = TipoAlerta.VAPE_CONFIRMADO;
         let mensaje = "";
         const tipoTexto = valores.tipo.toLowerCase(); // FIX: evita crash si el ESP32 no envía "tipo"
 
         if (tipoTexto.includes("alta confianza")) {
           tipoAlerta = TipoAlerta.ALTA_CONFIANZA;
-          mensaje = `Detección de ALTA CONFIANZA en ${dispositivo.salon}. CO (MQ7): ${valores.ppm135}, PM2.5: ${valores.pm25}. Se detectaron múltiples indicadores simultáneamente.`;
-        } else if (tipoTexto.includes("vape")) {
+          mensaje = `Detección de ALTA CONFIANZA en ${dispositivo.salon}. CO (MQ7): ${valores.ppm135} ppm, MQ-3: ${valores.ppm2.toFixed(2)}V. Indicadores simultáneos de vapeo.`;
+        } else if (tipoTexto.includes("vape") || valores.ppm2 > 0.8) {
           tipoAlerta = TipoAlerta.VAPE_CONFIRMADO;
-          mensaje = `Vape CONFIRMADO en ${dispositivo.salon}. CO (MQ7): ${valores.ppm135} ppm, humedad elevada: ${valores.humedad}%. Los niveles de gas y humedad coinciden con patrón de vapeo.`;
+          mensaje = `Vape CONFIRMADO en ${dispositivo.salon}. MQ-3: ${valores.ppm2.toFixed(2)}V, CO: ${valores.ppm135} ppm, humedad: ${valores.humedad}%. Coincide con patrón de vapeo.`;
         } else if (tipoTexto.includes("cigarrillo")) {
           tipoAlerta = TipoAlerta.CIGARRILLO;
           mensaje = `Cigarrillo detectado en ${dispositivo.salon}. CO (MQ7): ${valores.ppm135} ppm. Patrón consistente con humo de tabaco.`;
         } else if (valores.pm25 > 35) {
           tipoAlerta = TipoAlerta.PM25_ALTO;
-          mensaje = `PM2.5 alto en ${dispositivo.salon}: ${valores.pm25} µg/m³ (límite: 35). Posible humo de vape o cigarrillo.`;
+          mensaje = `PM2.5 alto en ${dispositivo.salon}: ${valores.pm25} µg/m³ (límite: 35). Posible aerosol de vape.`;
         }
 
         // Crear alerta en DB

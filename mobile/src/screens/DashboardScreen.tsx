@@ -133,9 +133,9 @@ function SalonCard({ disp, lectura, onPress }: { disp: Dispositivo, lectura?: Le
 
       <View style={styles.metricsGrid}>
         <Metric label="CO (MQ7)" value={lectura ? lectura.ppm135.toFixed(1) : '--'} unit="ppm" />
+        <Metric label="MQ-3 (Vape)" value={lectura && lectura.ppm2 >= 0 ? `${lectura.ppm2.toFixed(2)}V` : '--'} unit="Volt" valueColor={!!lectura && lectura.ppm2 > 0.8 ? COLORS.red : undefined} />
         <Metric label="Humedad" value={lectura && lectura.humedad >= 0 ? `${lectura.humedad.toFixed(0)}%` : '--'} unit="HR" />
-        <Metric label="PM2.5" value={lectura && lectura.pm25 >= 0 ? String(lectura.pm25) : '--'} unit="µg" valueColor={!!lectura && lectura.pm25 > 35 ? COLORS.red : undefined} />
-        <Metric label="PM10" value={lectura && lectura.pm10 >= 0 ? String(lectura.pm10) : '--'} unit="µg" />
+        <Metric label="Temperatura" value={lectura && lectura.temperatura > -40 ? `${lectura.temperatura.toFixed(1)}°` : '--'} unit="°C" />
       </View>
 
       <Text style={styles.salonTiempo}>{formatTiempoRelativo(disp.ultimaConexion)}</Text>

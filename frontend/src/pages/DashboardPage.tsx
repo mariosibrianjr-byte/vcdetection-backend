@@ -75,7 +75,7 @@ interface DatosActa {
   fecha: string;
   tipo: string;
   co: number;
-  pm25: number;
+  mq3: number;
   co2: number;
   humedad: number;
   temperatura: number;
@@ -175,7 +175,7 @@ function SalonModal({
       fecha: new Date().toISOString(),
       tipo: lectura?.tipo || 'Revisión preventiva',
       co: lectura ? lectura.ppm135 : 0,
-      pm25: lectura ? lectura.pm25 : 0,
+      mq3: lectura ? lectura.ppm2 : 0,
       co2: lectura ? lectura.co2 : 0,
       humedad: lectura ? lectura.humedad : 0,
       temperatura: lectura ? lectura.temperatura : 0,
@@ -186,13 +186,13 @@ function SalonModal({
     ? historial.slice(-20).map((l, i) => ({
         i,
         co: parseFloat(l.ppm135.toFixed(1)),
-        pm25: l.pm25 > 0 ? l.pm25 : 0,
+        mq3: l.ppm2 >= 0 ? parseFloat(l.ppm2.toFixed(2)) : 0,
         humedad: l.humedad >= 0 ? l.humedad : 0,
       }))
     : histo.map(p => ({
         hora: new Date(p.hora).toLocaleString('es-SV', rango === '1' ? { hour: '2-digit', minute: '2-digit' } : { day: '2-digit', month: 'short', hour: '2-digit' }),
         co: p.ppm135,
-        pm25: p.pm25 > 0 ? p.pm25 : 0,
+        mq3: p.ppm2 >= 0 ? parseFloat(p.ppm2.toFixed(2)) : 0,
         humedad: p.humedad >= 0 ? p.humedad : 0,
       }));
 
@@ -263,25 +263,18 @@ function SalonModal({
               <div className="modal-metric-unit">ppm</div>
             </div>
             <div className="modal-metric-card">
+              <div className="modal-metric-label">MQ-3 (Vape)</div>
+              <div className="modal-metric-val" style={{ color: lectura && lectura.ppm2 > 0.8 ? 'var(--red)' : 'var(--purple)' }}>
+                {lectura && lectura.ppm2 >= 0 ? `${lectura.ppm2.toFixed(2)}V` : '--'}
+              </div>
+              <div className="modal-metric-unit">Voltaje sensor</div>
+            </div>
+            <div className="modal-metric-card">
               <div className="modal-metric-label">Humedad</div>
               <div className="modal-metric-val" style={{ color: '#0ea5e9' }}>
                 {lectura && lectura.humedad >= 0 ? `${lectura.humedad.toFixed(1)}%` : '--'}
               </div>
               <div className="modal-metric-unit">HR</div>
-            </div>
-            <div className="modal-metric-card">
-              <div className="modal-metric-label">PM2.5</div>
-              <div className="modal-metric-val" style={{ color: lectura && lectura.pm25 > 35 ? 'var(--red)' : 'var(--green)' }}>
-                {lectura && lectura.pm25 >= 0 ? lectura.pm25 : '--'}
-              </div>
-              <div className="modal-metric-unit">µg/m³</div>
-            </div>
-            <div className="modal-metric-card">
-              <div className="modal-metric-label">PM10</div>
-              <div className="modal-metric-val" style={{ color: 'var(--purple)' }}>
-                {lectura && lectura.pm10 >= 0 ? lectura.pm10 : '--'}
-              </div>
-              <div className="modal-metric-unit">µg/m³</div>
             </div>
             <div className="modal-metric-card">
               <div className="modal-metric-label">Temperatura</div>
@@ -305,7 +298,7 @@ function SalonModal({
           {!cargandoHisto && chartData.length > 1 && (
             <>
               <div className="chart-title">
-                {rango === 'live' ? `CO, Humedad y PM2.5 en vivo (últimas ${chartData.length} lecturas)` : `Promedios por hora — últimos ${rango} día(s)`}
+                {rango === 'live' ? `CO, Humedad y MQ-3 en vivo (últimas ${chartData.length} lecturas)` : `Promedios por hora — últimos ${rango} día(s)`}
               </div>
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={chartData}>
@@ -314,7 +307,7 @@ function SalonModal({
                   <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: '#64748b', fontWeight: 600 }} />
                   <Line type="monotone" dataKey="co" stroke="var(--blue)" strokeWidth={2.5} dot={false} name="CO MQ7 (ppm)" />
                   <Line type="monotone" dataKey="humedad" stroke="#0ea5e9" strokeWidth={2.5} dot={false} name="Humedad (%)" />
-                  <Line type="monotone" dataKey="pm25" stroke="var(--purple)" strokeWidth={2} dot={false} name="PM2.5 (µg/m³)" />
+                  <Line type="monotone" dataKey="mq3" stroke="var(--purple)" strokeWidth={2} dot={false} name="MQ-3 Vape (V)" />
                 </LineChart>
               </ResponsiveContainer>
             </>
@@ -492,19 +485,19 @@ function SalonCard({
           <div className="metric-value">{lectura ? lectura.ppm135.toFixed(1) : '--'}<span className="metric-unit"> ppm</span></div>
         </div>
         <div className="metric">
+          <div className="metric-label">MQ-3 (Vape)</div>
+          <div className="metric-value" style={{ color: lectura && lectura.ppm2 > 0.8 ? 'var(--red)' : undefined }}>
+            {lectura && lectura.ppm2 >= 0 ? `${lectura.ppm2.toFixed(2)}` : '--'}<span className="metric-unit"> V</span>
+          </div>
+        </div>
+        <div className="metric">
           <div className="metric-label">Humedad</div>
           <div className="metric-value">{lectura && lectura.humedad >= 0 ? lectura.humedad.toFixed(0) : '--'}<span className="metric-unit"> %</span></div>
         </div>
         <div className="metric">
-          <div className="metric-label">PM2.5</div>
-          <div className="metric-value" style={{ color: lectura && lectura.pm25 > 35 ? 'var(--red)' : undefined }}>
-            {lectura && lectura.pm25 >= 0 ? lectura.pm25 : '--'}<span className="metric-unit"> µg</span>
-          </div>
-        </div>
-        <div className="metric">
-          <div className="metric-label">PM10</div>
+          <div className="metric-label">Temperatura</div>
           <div className="metric-value">
-            {lectura && lectura.pm10 >= 0 ? lectura.pm10 : '--'}<span className="metric-unit"> µg</span>
+            {lectura && lectura.temperatura > -40 ? lectura.temperatura.toFixed(1) : '--'}<span className="metric-unit"> °C</span>
           </div>
         </div>
       </div>
@@ -912,7 +905,7 @@ export default function DashboardPage() {
                             fecha: alerta.fecha,
                             tipo: tipoAlertaLabel(alerta.tipo),
                             co: 24, // Valores de referencia de evento
-                            pm25: 65,
+                            mq3: 1.25,
                             co2: 950,
                             humedad: 68,
                             temperatura: 28,
@@ -1021,10 +1014,10 @@ export default function DashboardPage() {
                   <td style={{ border: '1px solid #cbd5e1', padding: 8 }}>{actaData.co > 10 ? 'Nivel elevado de gas por combustión' : 'Normal'}</td>
                 </tr>
                 <tr>
-                  <td style={{ border: '1px solid #cbd5e1', padding: 8 }}><b>Material Particulado PM2.5 (PMS5003)</b></td>
-                  <td style={{ border: '1px solid #cbd5e1', padding: 8, textAlign: 'center' }}>{actaData.pm25} µg/m³</td>
-                  <td style={{ border: '1px solid #cbd5e1', padding: 8, textAlign: 'center' }}>&lt; 25.0 µg/m³</td>
-                  <td style={{ border: '1px solid #cbd5e1', padding: 8 }}>{actaData.pm25 > 35 ? 'Aerosol denso confirmado' : 'Normal'}</td>
+                  <td style={{ border: '1px solid #cbd5e1', padding: 8 }}><b>Sensor de Alcohol / Vapes (MQ-3)</b></td>
+                  <td style={{ border: '1px solid #cbd5e1', padding: 8, textAlign: 'center' }}>{actaData.mq3 >= 0 ? `${actaData.mq3.toFixed(2)} V` : '--'}</td>
+                  <td style={{ border: '1px solid #cbd5e1', padding: 8, textAlign: 'center' }}>&lt; 0.80 V</td>
+                  <td style={{ border: '1px solid #cbd5e1', padding: 8 }}>{actaData.mq3 > 0.8 ? 'Aerosol / alcohol de vape confirmado' : 'Normal'}</td>
                 </tr>
                 <tr>
                   <td style={{ border: '1px solid #cbd5e1', padding: 8 }}><b>Dióxido de Carbono (MH-Z19C NDIR)</b></td>
