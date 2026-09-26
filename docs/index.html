@@ -15,8 +15,7 @@
   <!-- Google Fonts: Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
     rel="stylesheet" />
 
   <style>
@@ -349,8 +348,15 @@
     }
 
     @keyframes flotar {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-8px); }
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-8px);
+      }
     }
 
     .mock-franja {
@@ -384,8 +390,17 @@
     }
 
     @keyframes pulso {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(1.3); }
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.4;
+        transform: scale(1.3);
+      }
     }
 
     .mock-tiempo {
@@ -664,8 +679,15 @@
     }
 
     @keyframes alertBlink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.7; }
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.7;
+      }
     }
 
     .sim-resultado-box {
@@ -1225,21 +1247,23 @@
         </div>
         <h1>Detección inteligente de <span>vape y cigarrillo</span> en salones y baños</h1>
         <p class="sub">
-          Sensores discretos con microcontrolador ESP32 analizan el aire en tiempo real. 
-          Al detectar humo o aerosol químico, la dirección y los coordinadores reciben una 
+          Sensores discretos con microcontrolador ESP32 analizan el aire en tiempo real.
+          Al detectar humo o aerosol químico, la dirección y los coordinadores reciben una
           alerta inmediata con el lugar exacto en su celular y computadora.
         </p>
 
         <div class="hero-botones">
           <a class="btn btn-primario" href="#descargas">
             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
             Descargar Aplicaciones
           </a>
           <a class="btn btn-secundario" href="#simulador">
             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
               <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             Probar Simulador en Vivo
@@ -1274,7 +1298,8 @@
             <div class="mock-alerta-box">
               <div class="mock-icono-peligro">
                 <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
               <div class="mock-alerta-info">
@@ -1300,7 +1325,8 @@
 
             <div class="mock-notif">
               <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
               Notificación enviada a 3 directores
             </div>
@@ -1410,7 +1436,8 @@
           <div class="sim-push-notif" id="pushNotif">
             <div class="sim-push-icon">
               <svg width="18" height="18" fill="white" viewBox="0 0 24 24">
-                <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
+                <path
+                  d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
               </svg>
             </div>
             <div class="sim-push-text">
@@ -1435,26 +1462,31 @@
       <div class="pasos-grid">
         <div class="paso-card">
           <h3>Módulo Compacto</h3>
-          <p>Un gabinete discreto sin cámaras ni micrófonos analiza continuamente el aire del salón mediante sensores electroquímicos y láser.</p>
+          <p>Un gabinete discreto sin cámaras ni micrófonos analiza continuamente el aire del salón mediante sensores
+            electroquímicos y láser.</p>
         </div>
         <div class="paso-card">
           <h3>Conexión Encriptada</h3>
-          <p>Las lecturas viajan por Wi-Fi cifradas con clave API exclusiva de cada sensor directamente al servidor central seguro.</p>
+          <p>Las lecturas viajan por Wi-Fi cifradas con clave API exclusiva de cada sensor directamente al servidor
+            central seguro.</p>
         </div>
         <div class="paso-card">
           <h3>Filtro Anti-Falso Positivo</h3>
-          <p>El algoritmo analiza la proporción de PM1.0, PM2.5, CO y humedad. Descarta automáticamente aerosoles de desodorante o polvo.</p>
+          <p>El algoritmo analiza la proporción de PM1.0, PM2.5, CO y humedad. Descarta automáticamente aerosoles de
+            desodorante o polvo.</p>
         </div>
         <div class="paso-card">
           <h3>Alerta Multicanal</h3>
-          <p>En menos de 1 segundo llega una notificación push a la app móvil de los coordinadores y suena en el panel de Windows.</p>
+          <p>En menos de 1 segundo llega una notificación push a la app móvil de los coordinadores y suena en el panel
+            de Windows.</p>
         </div>
       </div>
 
       <div class="chips-hardware">
         <span class="chip-hw"><i></i> MQ-7 · Monóxido de Carbono (CO)</span>
         <span class="chip-hw"><i></i> PMS5003 · Partículas Láser PM2.5/PM10</span>
-        <span class="chip-hw"><i></i> MH-Z19C · CO₂ Infrarrojo NDIR</span>
+        <span class="chip-hw"><i></i> DHT22 · Humedad y temperatura</span>
+        <span class="chip-hw"><i></i> MQ-3 · Alcohol y vape</span>
         <span class="chip-hw"><i></i> ESP32 · Microcontrolador con Watchdog</span>
       </div>
     </div>
@@ -1518,7 +1550,8 @@
       <div class="caracs-grid">
         <div class="carac-card">
           <div class="carac-icono" style="background: #eef2ff;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"
+              stroke-linecap="round">
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
             </svg>
           </div>
@@ -1528,7 +1561,8 @@
 
         <div class="carac-card">
           <div class="carac-icono" style="background: #ecfdf5;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"
+              stroke-linecap="round">
               <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
               <path d="M13.73 21a2 2 0 01-3.46 0" />
             </svg>
@@ -1539,27 +1573,32 @@
 
         <div class="carac-card">
           <div class="carac-icono" style="background: #fdf4ff;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"
+              stroke-linecap="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
           </div>
           <h3>Privacidad Garantizada</h3>
-          <p>Ideal para baños y vestidores: no contiene micrófonos ni cámaras. Solo analiza parámetros químicos del aire.</p>
+          <p>Ideal para baños y vestidores: no contiene micrófonos ni cámaras. Solo analiza parámetros químicos del
+            aire.</p>
         </div>
 
         <div class="carac-card">
           <div class="carac-icono" style="background: #fff7ed;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2" stroke-linecap="round">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2"
+              stroke-linecap="round">
               <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <h3>Historial e Informes</h3>
-          <p>Bitácora con fecha, hora exacta y concentraciones para actas disciplinarias y reportes a padres de familia.</p>
+          <p>Bitácora con fecha, hora exacta y concentraciones para actas disciplinarias y reportes a padres de familia.
+          </p>
         </div>
 
         <div class="carac-card">
           <div class="carac-icono" style="background: #f0fdf4;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"
+              stroke-linecap="round">
               <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
               <line x1="8" y1="21" x2="16" y2="21"></line>
               <line x1="12" y1="17" x2="12" y2="21"></line>
@@ -1571,7 +1610,8 @@
 
         <div class="carac-card">
           <div class="carac-icono" style="background: #f1f5f9;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2"
+              stroke-linecap="round">
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
               <polyline points="22,6 12,13 2,6"></polyline>
             </svg>
@@ -1601,7 +1641,9 @@
             </svg>
           </div>
           <div class="faq-respuesta">
-            <b>Absolutamente no.</b> El dispositivo está diseñado conforme a las normativas de privacidad escolar: no incorpora cámaras, micrófonos ni sensores biométricos. Solo analiza partículas en suspensión y gases ambientales (CO, PM2.5 y humedad).
+            <b>Absolutamente no.</b> El dispositivo está diseñado conforme a las normativas de privacidad escolar: no
+            incorpora cámaras, micrófonos ni sensores biométricos. Solo analiza partículas en suspensión y gases
+            ambientales (CO, PM2.5 y humedad).
           </div>
         </div>
 
@@ -1613,7 +1655,10 @@
             </svg>
           </div>
           <div class="faq-respuesta">
-            El sistema utiliza un <b>filtro cruzado de sensores</b>. Los desodorantes y perfumes liberan propelentes volátiles que no contienen la firma química ni el tamaño de gota ultrafina del aerosol de vapeo ni la combustión de monóxido de carbono (CO). Si un alumno usa desodorante, el algoritmo lo clasifica como inocuo y no genera alarma.
+            El sistema utiliza un <b>filtro cruzado de sensores</b>. Los desodorantes y perfumes liberan propelentes
+            volátiles que no contienen la firma química ni el tamaño de gota ultrafina del aerosol de vapeo ni la
+            combustión de monóxido de carbono (CO). Si un alumno usa desodorante, el algoritmo lo clasifica como inocuo
+            y no genera alarma.
           </div>
         </div>
 
@@ -1625,7 +1670,9 @@
             </svg>
           </div>
           <div class="faq-respuesta">
-            Cada sensor cuenta con una <b>cola de respaldo en memoria</b> y reconexión automática con backoff exponencial. Si el Wi-Fi se corta, las lecturas se acumulan localmente y se transmiten en cuanto la red vuelve a estar disponible, sin perder el historial.
+            Cada sensor cuenta con una <b>cola de respaldo en memoria</b> y reconexión automática con backoff
+            exponencial. Si el Wi-Fi se corta, las lecturas se acumulan localmente y se transmiten en cuanto la red
+            vuelve a estar disponible, sin perder el historial.
           </div>
         </div>
 
@@ -1637,7 +1684,9 @@
             </svg>
           </div>
           <div class="faq-respuesta">
-            Gracias al soporte <b>ArduinoOTA (Over-The-Air)</b> integrado, las mejoras de firmware y calibraciones se transmiten de forma inalámbrica a través de la red local sin necesidad de escaleras ni desmontar los dispositivos físicamente.
+            Gracias al soporte <b>ArduinoOTA (Over-The-Air)</b> integrado, las mejoras de firmware y calibraciones se
+            transmiten de forma inalámbrica a través de la red local sin necesidad de escaleras ni desmontar los
+            dispositivos físicamente.
           </div>
         </div>
 
@@ -1649,7 +1698,8 @@
             </svg>
           </div>
           <div class="faq-respuesta">
-            El módulo opera a 5V DC mediante cable micro-USB convencional o puede conectarse directamente a la caja de registro de iluminación del techo mediante un módulo conmutado oculto de 110V/220V a 5V.
+            El módulo opera a 5V DC mediante cable micro-USB convencional o puede conectarse directamente a la caja de
+            registro de iluminación del techo mediante un módulo conmutado oculto de 110V/220V a 5V.
           </div>
         </div>
       </div>
@@ -1669,7 +1719,8 @@
         <!-- Android -->
         <div class="tarjeta-descarga">
           <div class="plataforma-badge" style="background: #ecfdf5;">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
               <rect x="5" y="2" width="14" height="20" rx="2"></rect>
               <line x1="12" y1="18" x2="12.01" y2="18"></line>
             </svg>
@@ -1678,19 +1729,26 @@
           <div class="formato">Archivo APK · Instalación Directa</div>
           <ul>
             <li>
-              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+              </svg>
               Notificaciones push instantáneas (FCM)
             </li>
             <li>
-              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+              </svg>
               Compatible con Android 8.0 o superior
             </li>
             <li>
-              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+              </svg>
               Bajo consumo de batería en segundo plano
             </li>
           </ul>
-          <a class="btn btn-primario" style="width:100%;" href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/download/latest/VCDetection-movil.apk">
+          <a class="btn btn-primario" style="width:100%;"
+            href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/download/latest/VCDetection-movil.apk">
             Descargar APK (Android)
           </a>
         </div>
@@ -1699,26 +1757,34 @@
         <div class="tarjeta-descarga">
           <div class="plataforma-badge" style="background: #eef2ff;">
             <svg width="34" height="34" viewBox="0 0 24 24" fill="#4f46e5">
-              <path d="M3 5.5l7.5-1v7H3v-6zm0 13v-6h7.5v7L3 18.5zm8.5 1.1v-7.1H21v8l-9.5-1.3v.4zm0-15.2L21 3.3v8.2h-9.5v-7z" />
+              <path
+                d="M3 5.5l7.5-1v7H3v-6zm0 13v-6h7.5v7L3 18.5zm8.5 1.1v-7.1H21v8l-9.5-1.3v.4zm0-15.2L21 3.3v8.2h-9.5v-7z" />
             </svg>
           </div>
           <h3>Panel Windows</h3>
           <div class="formato">Instalador .exe · Asistente Completo</div>
           <ul>
             <li>
-              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+              </svg>
               Dashboard para monitores de prefectura
             </li>
             <li>
-              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+              </svg>
               Alertas sonoras y visuales en tiempo real
             </li>
             <li>
-              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+              </svg>
               Compatible con Windows 10 y 11 (64-bit)
             </li>
           </ul>
-          <a class="btn btn-primario" style="width:100%;" href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/download/latest/VCDetection-Setup.exe">
+          <a class="btn btn-primario" style="width:100%;"
+            href="https://github.com/mariosibrianjr-byte/vcdetection-backend/releases/download/latest/VCDetection-Setup.exe">
             Descargar Instalador (.exe)
           </a>
         </div>
@@ -1727,7 +1793,8 @@
       <!-- Banner Contacto -->
       <div class="banner-contacto">
         <h3>¿Quieres implementar VCDetection en tu colegio?</h3>
-        <p>Brindamos asesoría en instalación de hardware, configuración de salones y acompañamiento en el despliegue.</p>
+        <p>Brindamos asesoría en instalación de hardware, configuración de salones y acompañamiento en el despliegue.
+        </p>
         <a class="btn btn-primario" style="background:white; color:var(--texto); font-weight:800;"
           href="https://github.com/mariosibrianjr-byte/vcdetection-backend" target="_blank" rel="noopener">
           Ver Código y Documentación en GitHub
@@ -1753,7 +1820,8 @@
         </div>
       </div>
       <div class="footer-bottom">
-        Sistema encubierto de detección de humo y vape para instituciones educativas · © 2026 VCDetection. Código abierto bajo licencia MIT.
+        Sistema encubierto de detección de humo y vape para instituciones educativas · © 2026 VCDetection. Código
+        abierto bajo licencia MIT.
       </div>
     </div>
   </footer>
