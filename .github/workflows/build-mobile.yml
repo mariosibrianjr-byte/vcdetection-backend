@@ -43,10 +43,56 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
 
+      # ── Firma del APK ────────────────────────────────────────────────
+      # Sin firma válida Android rechaza la instalación con
+      # "Aplicación no instalada".
+      - name: Firmar APK
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          # Decodificar el keystore desde el secret
+          echo "$KEYSTORE_BASE64" | base64 -d > /tmp/release.keystore
+
+          APK_UNSIGNED="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          APK_RELEASE="android/app/build/outputs/apk/release/app-release.apk"
+
+          # Gradle puede generar el APK con cualquiera de los dos nombres
+          if [ -f "$APK_RELEASE" ]; then
+            INPUT_APK="$APK_RELEASE"
+          elif [ -f "$APK_UNSIGNED" ]; then
+            INPUT_APK="$APK_UNSIGNED"
+          else
+            echo "❌ No se encontró ningún APK en android/app/build/outputs/apk/release/"
+            ls -la android/app/build/outputs/apk/release/ || true
+            exit 1
+          fi
+
+          # Zipalign para optimización
+          "${ANDROID_HOME}/build-tools/$(ls ${ANDROID_HOME}/build-tools/ | tail -1)/zipalign" -v 4 \
+            "$INPUT_APK" /tmp/app-aligned.apk
+
+          # Firmar con apksigner
+          "${ANDROID_HOME}/build-tools/$(ls ${ANDROID_HOME}/build-tools/ | tail -1)/apksigner" sign \
+            --ks /tmp/release.keystore \
+            --ks-pass "pass:${KEYSTORE_PASSWORD}" \
+            --ks-key-alias "${KEY_ALIAS}" \
+            --key-pass "pass:${KEY_PASSWORD}" \
+            --out /tmp/app-signed.apk \
+            /tmp/app-aligned.apk
+
+          # Verificar la firma
+          "${ANDROID_HOME}/build-tools/$(ls ${ANDROID_HOME}/build-tools/ | tail -1)/apksigner" verify \
+            --print-certs /tmp/app-signed.apk
+
+          echo "✅ APK firmado exitosamente"
+
       - name: Preparar APK
         run: |
           mkdir -p dist-apk
-          cp android/app/build/outputs/apk/release/app-release.apk dist-apk/VCDetection-movil.apk
+          cp /tmp/app-signed.apk dist-apk/VCDetection-movil.apk
 
       - name: Subir artefacto
         uses: actions/upload-artifact@v4
@@ -60,7 +106,7 @@ jobs:
         with:
           tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('movil-v{0}', github.run_number) }}
           name: VCDetection App Movil ${{ github.ref_type == 'tag' && github.ref_name || format('movil-v{0}', github.run_number) }}
-          body: APK release con bundle JS incluido. Instalar directamente en Android.
+          body: APK release firmado con bundle JS incluido. Instalar directamente en Android.
           files: mobile/dist-apk/VCDetection-movil.apk
           make_latest: true
 
