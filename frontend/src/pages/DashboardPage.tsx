@@ -704,9 +704,12 @@ export default function DashboardPage() {
   // [MEJORA A] Función para imprimir el acta formal
   const imprimirActa = (datos: DatosActa) => {
     setActaData(datos);
-    setTimeout(() => {
-      window.print();
-    }, 150);
+    // Esperar a que React renderice el acta en el DOM antes de invocar print
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        window.print();
+      }, 300);
+    });
   };
 
   const online = dispositivos.filter(d => d.online).length;
@@ -959,7 +962,7 @@ export default function DashboardPage() {
 
       {/* [MEJORA A] Plantilla Imprimible de Acta Disciplinaria (PDF) */}
       {actaData && (
-        <div id="printable-acta" style={{ display: 'none' }}>
+        <div id="printable-acta">
           <div style={{ borderBottom: '2px solid #0f172a', paddingBottom: 14, marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0, textTransform: 'uppercase', letterSpacing: 0.5 }}>
